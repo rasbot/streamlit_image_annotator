@@ -76,8 +76,8 @@ You can point the app to a default directory with your images. You can at any ti
 ## json file
 Images will be annotated with labels and stored in a dictionary while the app is running. You can move files within the app, but as a backup, a json file with the annotations is created. `set_config.bat` will set the path to the json file in the `default_directory` that you set.
 
-## options
-The `options` used in this app are what buttons you will use to annotate files. The default is "keep, delete, fix, other". You can change the default here, or leave it blank to use the default options. These can be changed at any time in the `config.yml` file, or on the fly in the app. The `options` will be folders created where your annotated images will be moved.
+## categories
+The `categories` used in this app are what buttons you will use to annotate files. The default is "keep, delete, fix, other". You can change the default here, or leave it blank to use the default categories. These can be changed at any time in the `config.yml` file, or on the fly in the app. The `categories` will be folders created where your annotated images will be moved.
 
 # Using the App
 
