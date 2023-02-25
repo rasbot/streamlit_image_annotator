@@ -1,0 +1,5 @@
+default_directory: D:\no_dir
+json_path: D:\no_dir\annotations.json
+options: keep, delete, fix, other
+clamp_image: True
+image_height_clamp: 896
