@@ -3,3 +3,4 @@ json_path: D:\stable diffusion outputs\annotations.json
 categories: keep, delete, fix, other
 clamp_image: True
 image_height_clamp: 896
+filter_files: png, jpg

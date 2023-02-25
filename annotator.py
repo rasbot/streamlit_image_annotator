@@ -82,6 +82,8 @@ def annotate(label: str, results_d: Dict[str, Dict[str, str]], json_path: str) -
 
 
 def filter_json():
+    """Filter a json file by removing keys.
+    """
     # filter and remove keys from json file
     json_d = load_json(JSON_PATH)
     remove_keys = state.annotations.keys()
@@ -107,7 +109,7 @@ def make_folders_move_files(image_dir: str) -> None:
     """
     filter_json()
     annotation_set = set(state.annotations.values())
-    img_file_names = get_filtered_files(image_dir, ["png", "jpg"])
+    img_file_names = get_filtered_files(image_dir)
     for annotation in annotation_set:
         n_files = 0
         remove_files = []
@@ -129,9 +131,9 @@ def make_folders_move_files(image_dir: str) -> None:
 
 def get_imgs(image_dir: str) -> List[str]:
     """Get a sorted list of image paths. Images
-    are filtered to png and jpg and sorted. If the
-    image directory is not a valid directory, return
-    None.
+    are filtered to png and jpg (specified in config.yml)
+    and sorted. If the image directory is not a
+    valid directory, return None.
 
     Args:
         image_dir (str): Directory with images to annotate.
@@ -139,7 +141,7 @@ def get_imgs(image_dir: str) -> List[str]:
     Returns:
         List[str]: List of sorted image paths.
     """
-    img_file_names = get_filtered_files(image_dir, ["png", "jpg"])
+    img_file_names = get_filtered_files(image_dir)
     if img_file_names is None:
         st.write(
             "Folder path does not seem to point to a valid directory. \
