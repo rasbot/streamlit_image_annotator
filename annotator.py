@@ -1,10 +1,12 @@
 import os
 import shutil
-from typing import Dict
+from typing import Dict, List
+
+import streamlit as st
 from omegaconf import OmegaConf
 from PIL import Image
-import streamlit as st
-from utils import get_filtered_files, update_json, load_json, save_json
+
+from utils import get_filtered_files, load_json, save_json, update_json
 
 
 def load_image(image_path: str, height: int = 896, is_clamped: bool = True) -> Image:
@@ -36,28 +38,23 @@ def load_image(image_path: str, height: int = 896, is_clamped: bool = True) -> I
     return resized_image
 
 
-def go_back():
-    """Reduce state.counter by 1, and sets
-    the current file, displaying the previous image.
-    """
-    state.counter -= 1
-    set_current_file()
-
-
-def go_forward():
-    """Increments the state.counter by 1, and sets
-    the current file, displaying the next image.
-    """
-    state.counter += 1
-    set_current_file()
-
-
 def set_current_file():
     """Set the current file to the index of the
     state.counter.
     """
     if state.counter < len(state.files):
         state.current_file = state.files[state.counter]
+
+
+def change_img(val: int) -> None:
+    """Increase/decrease state.counter and sets
+    the current file, displaying a different image.
+
+    Args:
+        val (int): Value to change counter (1/-1)
+    """
+    state.counter += val
+    set_current_file()
 
 
 def change_hide_state():
@@ -67,14 +64,24 @@ def change_hide_state():
     state.hide_state = 1 - state.hide_state
 
 
-def annotate(label: str, results_d: Dict[Dict[str, str], str], json_path: str):
+def annotate(label: str, results_d: Dict[str, Dict[str, str]], json_path: str) -> None:
+    """Set annotation for the current file, change the image, and update the
+    json file.
+
+    results_d will have a 'directory' key with a value containing the directory path
+    of the image folder, and a 'files' key with a dictionary of file_name/annotation pairs.
+
+    Args:
+        label (str): Annotation label to assign to img file.
+        results_d (Dict[str, Dict[str, str]): Dictionary of annotations.
+        json_path (str): Path to json file.
+    """
     state.annotations[state.current_file] = label
-    go_forward()
-    # if args.json:
+    change_img(1)
     update_json(results_d, json_path)
 
 
-def make_folders_move_files(image_dir: str):
+def filter_json():
     # filter and remove keys from json file
     json_d = load_json(JSON_PATH)
     remove_keys = state.annotations.keys()
@@ -89,8 +96,18 @@ def make_folders_move_files(image_dir: str):
         json_d["files"] = filtered_d
     save_json(json_d, JSON_PATH)
 
+
+def make_folders_move_files(image_dir: str) -> None:
+    """Make folders for each unique annotation. Filter state dict
+    and move annotated files to their respective folders.
+    Remove files from json.
+
+    Args:
+        image_dir (str): Directory of images being annotated.
+    """
+    filter_json()
     annotation_set = set(state.annotations.values())
-    img_names = get_filtered_files(image_dir, ["png", "jpg"])
+    img_file_names = get_filtered_files(image_dir, ["png", "jpg"])
     for annotation in annotation_set:
         n_files = 0
         remove_files = []
@@ -99,35 +116,59 @@ def make_folders_move_files(image_dir: str):
             file for (file, label) in state.annotations.items() if annotation == label
         ]
         for file in filtered_files:
-            if file in img_names:
+            if file in img_file_names:
                 n_files += 1
                 remove_files.append(file)
-                file_path = os.path.join(image_dir, file)
+                img_file_path = os.path.join(image_dir, file)
                 file_dest = os.path.join(image_dir, annotation, file)
-                shutil.move(file_path, file_dest)
+                shutil.move(img_file_path, file_dest)
         st.sidebar.write(f"moving {n_files} to {annotation}...")
         for file in remove_files:
             state.annotations.pop(file, None)
 
 
-def get_imgs(image_dir: str) -> list:
-    img_names = get_filtered_files(image_dir, ["png", "jpg"])
-    img_names.sort()
-    return img_names
+def get_imgs(image_dir: str) -> List[str]:
+    """Get a sorted list of image paths. Images
+    are filtered to png and jpg and sorted. If the
+    image directory is not a valid directory, return
+    None.
+
+    Args:
+        image_dir (str): Directory with images to annotate.
+
+    Returns:
+        List[str]: List of sorted image paths.
+    """
+    img_file_names = get_filtered_files(image_dir, ["png", "jpg"])
+    if img_file_names is None:
+        st.write(
+            "Folder path does not seem to point to a valid directory. \
+                 Try another one please."
+        )
+        return None
+    img_file_names.sort()
+    return img_file_names
 
 
-def reset_imgs(image_dir: str):
-    img_names = get_imgs(image_dir)
+def reset_imgs(image_dir: str) -> None:
+    """Reset variables when a directory is changed
+
+    Args:
+        image_dir (str): New directory of images.
+    """
+    img_file_names = get_imgs(image_dir)
+    if img_file_names is None:
+        return
     state.counter = 0
     state.annotations = {}
-    state.files = img_names
+    state.files = img_file_names
     if state.files:
         state.current_file = state.files[0]
     else:
         st.write("No image files in folder. Nothing to annotate.")
-    remaining = len(state.files)
-    n_annotated = 0
-    info_placeholder.info(f"Annotated: {n_annotated}, Remaining: {remaining}")
+    remaining_imgs = len(state.files)
+    n_annotated_imgs = 0
+    info_placeholder.info(f"Annotated: {n_annotated_imgs}, Remaining: {remaining_imgs}")
 
 
 conf = OmegaConf.load("config.yml")
@@ -139,7 +180,6 @@ if not CATEGORIES:
 is_image_clamp = conf.clamp_image
 IMG_HEIGHT_CLAMP = int(conf.image_height_clamp)
 
-# st.set_page_config(layout="wide")
 state = st.session_state
 img_names = get_imgs(IMAGE_DIR)
 st.sidebar.title("Image Annotator")
@@ -154,7 +194,7 @@ if "counter" not in state:
     state.counter = 0
 if "hide_state" not in state:
     state.hide_state = 0
-if "annotations" not in state:
+if "annotations" not in state and not img_names is None:
     state.annotations = {}
     state.files = img_names
     if state.files:
@@ -165,7 +205,7 @@ if "annotations" not in state:
 # set order of UI elements
 n_annotated = len(state.annotations)
 remaining = len(state.files) - state.counter
-st.sidebar.button("BACK", on_click=go_back)
+st.sidebar.button("BACK", on_click=change_img, args=(-1,))
 info_placeholder = st.sidebar.empty()
 info_placeholder.info(f"Annotated: {n_annotated}, Remaining: {remaining}")
 cols_placeholder = st.sidebar.empty()
