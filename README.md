@@ -1,8 +1,6 @@
-# streamlit_image_annotator
-An annotation tool to sort through images, useful when generating a lot of images with Stable Diffusion.
 <div align="center">
-    <img src="images/app_layout.png" width="700" height="auto"/>
-    <p>Image Annotator interface.</p>
+    <img src="images/logo.png" width="700" height="auto"/>
+<p>An annotation tool to sort through images, useful when generating a lot of images with Stable Diffusion.</p>
 </div>
 
 ## Table of Contents
@@ -11,8 +9,14 @@ An annotation tool to sort through images, useful when generating a lot of image
 * [Installation](#installation)
 * [Config](#config)
 * [Using the App](#using-the-app)
+  * [App Demo](#app-demo)
 
 # Introduction
+
+<div align="center">
+    <img src="images/app_layout.png" width="500" height="auto"/>
+    <p>Image Annotator interface.</p>
+</div>
 
 This tool is helpful to sort images. A good use-case is when generating images with Stable Diffusion, it is possible to batch generate a lot of images. You might want to sort them, and looking at them in a file explorer is difficult if you cannot see the whole image.
 
@@ -85,8 +89,22 @@ Launch the app from the repo directory in your terminal:
 ```bash
 > streamlit run .\annotatator.py
 ```
-Which will launch the app in a browser and point to the `default_directory` folder. You can easily change folders in the UI if you are not in the folder you want to use. Change the folder path and hit enter.
+Which will launch the app in a browser and point to the `default_directory` folder. You can easily change folders in the UI if you are not in the folder you want to use. Click on the "Expand for more options" if it is collapsed. Change the folder path and hit enter.
 <div align="center">
     <img src="images/change_folder.gif" width="700" height="auto"/>
     <p>Change the folder path.</p>
+</div>
+
+The buttons correspond to the categories provided in the "annotation button names" field. You can change them and upon hitting enter, the UI will refresh the button names.
+<div align="center">
+    <img src="images/buttons.gif" width="700" height="auto"/>
+    <p>Change the button names (categories).</p>
+</div>
+
+## App Demo
+
+
+<div align="center">
+    <img src="images/demo.gif" width="700" height="auto"/>
+    <p>Annotating images with the app.</p>
 </div>
