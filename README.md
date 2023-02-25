@@ -2,7 +2,7 @@
 An annotation tool to sort through images, useful when generating a lot of images with Stable Diffusion.
 <div align="center">
     <img src="images/app_layout.png" width="700" height="auto"/>
-
+    <p>Image Annotator interface.</p>
 </div>
 
 ## Table of Contents
@@ -81,3 +81,12 @@ The `categories` used in this app are what buttons you will use to annotate file
 
 # Using the App
 
+Launch the app from the repo directory in your terminal:
+```bash
+> streamlit run .\annotatator.py
+```
+Which will launch the app in a browser and point to the `default_directory` folder. You can easily change folders in the UI if you are not in the folder you want to use. Change the folder path and hit enter.
+<div align="center">
+    <img src="images/change_folder.gif" width="700" height="auto"/>
+    <p>Change the folder path.</p>
+</div>
