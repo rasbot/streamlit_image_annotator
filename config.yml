@@ -1,5 +1,4 @@
-default_directory: R:\SD\test\other
-use_json: n
+default_directory: 
 default_categories: 
 clamp_image: True
 image_height_clamp: 896
