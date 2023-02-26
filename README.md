@@ -103,8 +103,30 @@ The buttons correspond to the categories provided in the "annotation button name
 
 ## App Demo
 
-
+Annotating / moving images into labeled folders is fairly straightforward. When you have specified a directory that has images, you simply click on the button you want to sort the image to. Each named button category will have a folder with the same name created in the image directory. If you label an image as "really cool image", and the next image as "delete", you will have 2 folders created, "really cool image" and "delete", with the two images being moved to their respective folders.
 <div align="center">
-    <img src="images/demo.gif" width="700" height="auto"/>
+    <img src="images/demo.gif" width="900" height="auto"/>
     <p>Annotating images with the app.</p>
 </div>
+You can change / add buttons on the fly, which will result in different folders being created when the `Move Files` button is pressed.
+
+## Expand for more options
+There is a collapsible menu with the directory path, the button names, and a few other options. This is collapsible in case you want to hide the directory path. Some of the sections have been mentioned, so this is to address the other sections not mentioned.
+
+### Hide Image Button
+Clicking this will create a button at the top which can be used to hide the current image. The button is named `CLEAR`, and can toggle the image being displayed.
+
+### Reset Annotations?
+This will simply delete any annotations that have been stored.
+<div align="center">
+    <img src="images/more_options.gif" width="700" height="auto"/>
+    <p>Hiding the current image and clearing annotations.</p>
+</div>
+
+### JSON file
+All of the annotation data is stored within the app when running, but as a backup a JSON file is created that temporarily stores the annotations. This was originally the way the annotations were stored and a separate script was called to move the files, but this can also be used as a backup in case the app is closed before you hit `Move Files`. Once any files are moved, they will be removed from the JSON file.
+<div align="center">
+    <img src="images/json.gif" width="900" height="auto"/>
+    <p>Writing to the JSON file.</p>
+</div>
+Regardless of the image directory you are in, the JSON file will be stored in the location stored in the config file (config.yml).
