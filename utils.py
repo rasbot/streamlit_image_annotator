@@ -3,6 +3,7 @@ import os
 from typing import List
 
 from omegaconf import OmegaConf
+from PIL import Image
 
 conf = OmegaConf.load("config.yml")
 FILTER_EXT_LIST = [filt.strip() for filt in conf.filter_files.split(",")]
@@ -70,3 +71,32 @@ def get_filtered_files(
     except:
         return None
     return [file for file in files if file.rsplit(".", 1)[-1] in ext_list]
+
+
+def load_image(image_path: str, height: int = 896, is_clamped: bool = True) -> Image:
+    """Load an image. If `is_clamped` is True, clamp the image height.
+    This makes it so larger images can be shown in the browser.
+    The `height` parameter will be used to clamp the height of the
+    image and the width will change proportionally.
+
+    Args:
+        image_path (str): Path to the image to load.
+        height (int, optional): Height of the image if clamped.
+            Defaults to 896.
+        is_clamped (bool, optional): True if the image will be clamped,
+            False will return the full image size. Defaults to True.
+
+    Returns:
+        Image: PIL Image that is either full resolution or clamped.
+    """
+    img = Image.open(image_path)
+    if not is_clamped:
+        return img
+    aspect_ratio = img.width / img.height
+    if img.height > height:
+        width = int(height * aspect_ratio)
+    else:
+        height = img.height
+        width = img.width
+    resized_image = img.resize((width, height))
+    return resized_image
