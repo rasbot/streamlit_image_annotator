@@ -1,5 +1,0 @@
-default_directory: 
-default_categories: 
-clamp_image: True
-image_height_clamp: 896
-filter_files: png, jpg
