@@ -4,39 +4,12 @@ from typing import Dict, List
 
 import streamlit as st
 from omegaconf import OmegaConf
-from PIL import Image
 
-from utils import get_filtered_files, load_json, save_json, update_json
+from utils import (get_filtered_files, load_image, load_json, save_json,
+                   update_json)
 
-
-def load_image(image_path: str, height: int = 896, is_clamped: bool = True) -> Image:
-    """Load an image. If `is_clamped` is True, clamp the image height.
-    This makes it so larger images can be shown in the browser.
-    The `height` parameter will be used to clamp the height of the
-    image and the width will change proportionally.
-
-    Args:
-        image_path (str): Path to the image to load.
-        height (int, optional): Height of the image if clamped.
-            Defaults to 896.
-        is_clamped (bool, optional): True if the image will be clamped,
-            False will return the full image size. Defaults to True.
-
-    Returns:
-        Image: PIL Image that is either full resolution or clamped.
-    """
-    img = Image.open(image_path)
-    if not is_clamped:
-        return img
-    aspect_ratio = img.width / img.height
-    if img.height > height:
-        width = int(height * aspect_ratio)
-    else:
-        height = img.height
-        width = img.width
-    resized_image = img.resize((width, height))
-    return resized_image
-
+# TODO: Add toggle for full resolution
+# TODO: Maybe add height clamp option
 
 def set_current_file():
     """Set the current file to the index of the
@@ -54,6 +27,8 @@ def change_img(val: int) -> None:
         val (int): Value to change counter (1/-1)
     """
     state.counter += val
+    if state.counter < 1:
+        state.counter = 0
     set_current_file()
 
 
@@ -78,6 +53,7 @@ def annotate(label: str, results_d: Dict[str, Dict[str, str]], json_path: str) -
     """
     state.annotations[state.current_file] = label
     change_img(1)
+    # if USE_JSON:
     update_json(results_d, json_path)
 
 
@@ -85,7 +61,7 @@ def filter_json():
     """Filter a json file by removing keys.
     """
     # filter and remove keys from json file
-    json_d = load_json(JSON_PATH)
+    json_d = load_json(state.json_path)
     remove_keys = state.annotations.keys()
     filtered_d = {
         file: annotation
@@ -96,37 +72,41 @@ def filter_json():
         json_d = {}
     else:
         json_d["files"] = filtered_d
-    save_json(json_d, JSON_PATH)
+    save_json(json_d, state.json_path)
 
 
-def make_folders_move_files(image_dir: str) -> None:
+def make_folders_move_files() -> None:
     """Make folders for each unique annotation. Filter state dict
     and move annotated files to their respective folders.
-    Remove files from json.
-
-    Args:
-        image_dir (str): Directory of images being annotated.
+    Remove files from json and delete the json file if it is empty.
     """
-    filter_json()
-    annotation_set = set(state.annotations.values())
-    img_file_names = get_filtered_files(image_dir)
+    json_d = load_json(state.json_path)
+    annotation_set = set(json_d["files"].values())
+    img_file_names = get_filtered_files(state.img_dir)
     for annotation in annotation_set:
         n_files = 0
         remove_files = []
-        os.makedirs(os.path.join(image_dir, annotation), exist_ok=True)
+        os.makedirs(os.path.join(state.img_dir, annotation), exist_ok=True)
         filtered_files = [
-            file for (file, label) in state.annotations.items() if annotation == label
+            file for (file, label) in json_d["files"].items() if annotation == label
         ]
         for file in filtered_files:
             if file in img_file_names:
                 n_files += 1
                 remove_files.append(file)
-                img_file_path = os.path.join(image_dir, file)
-                file_dest = os.path.join(image_dir, annotation, file)
+                img_file_path = os.path.join(state.img_dir, file)
+                file_dest = os.path.join(state.img_dir, annotation, file)
                 shutil.move(img_file_path, file_dest)
         st.sidebar.write(f"moving {n_files} to {annotation}...")
         for file in remove_files:
             state.annotations.pop(file, None)
+            json_d["files"].pop(file, None)
+    if len(json_d["files"]) > 0:
+        st.write("non zero json")
+        save_json(json_d, state.json_path)
+    else:
+        st.write("delete that guy")
+        os.remove(state.json_path)
 
 
 def get_imgs(image_dir: str) -> List[str]:
@@ -174,9 +154,11 @@ def reset_imgs(image_dir: str) -> None:
 
 
 conf = OmegaConf.load("config.yml")
-JSON_PATH = conf.json_path
 IMAGE_DIR = conf.default_directory
-CATEGORIES = conf.categories
+if not IMAGE_DIR or not os.path.exists(IMAGE_DIR):
+    IMAGE_DIR = os.getcwd()
+JSON_PATH = os.path.join(IMAGE_DIR, "annotations.json")
+CATEGORIES = conf.default_categories
 if not CATEGORIES:
     CATEGORIES = "keep, delete, fix, other"
 is_image_clamp = conf.clamp_image
@@ -186,10 +168,10 @@ state = st.session_state
 img_names = get_imgs(IMAGE_DIR)
 st.sidebar.title("Image Annotator")
 
-if "clear_json" not in state:
-    state.clear_json = 0
 if "img_dir" not in state:
     state.img_dir = IMAGE_DIR
+if "json_path" not in state:
+    state.json_path = JSON_PATH
 if "categories" not in state:
     state.categories = CATEGORIES
 if "counter" not in state:
@@ -204,6 +186,10 @@ if "annotations" not in state and not img_names is None:
     else:
         st.write("No image files in folder. Nothing to annotate.")
 
+# only create a empty json file if the directory has images
+if not os.path.exists(JSON_PATH) and state.files:
+    st.write("SAVE EMPTY JSON")
+    save_json({}, JSON_PATH)
 # set order of UI elements
 n_annotated = len(state.annotations)
 remaining = len(state.files) - state.counter
@@ -213,7 +199,7 @@ info_placeholder.info(f"Annotated: {n_annotated}, Remaining: {remaining}")
 cols_placeholder = st.sidebar.empty()
 st.sidebar.markdown("---")
 move_col, reset_col = st.sidebar.columns(2)
-move_col.button("Move Files", on_click=make_folders_move_files, args=(state.img_dir,))
+move_col.button("Move Files", on_click=make_folders_move_files)
 st.sidebar.markdown("---")
 with st.sidebar.expander("Expand for more options"):
     new_img_dir = st.text_input(
@@ -221,7 +207,10 @@ with st.sidebar.expander("Expand for more options"):
     )
     if new_img_dir != state.img_dir:
         state.img_dir = new_img_dir
+        state.json_path = os.path.join(new_img_dir, "annotations.json")
         reset_imgs(state.img_dir)
+        if not os.path.exists(state.json_path) and state.files:
+            save_json({}, state.json_path)
     state.categories = st.text_input(
         "annotation button names (comma separated)", value=CATEGORIES
     )
@@ -233,7 +222,7 @@ with st.sidebar.expander("Expand for more options"):
 
 if clear_annotations:
     st.write("CLEAR")
-    save_json({}, JSON_PATH)
+    save_json({}, state.json_path)
     state.annotations = {}
     n_annotated = 0
     remaining = len(state.files)
@@ -249,7 +238,7 @@ if state.counter < len(state.files):
         json_dict = {"directory": state.img_dir, "files": state.annotations}
         for idx, option in enumerate(state.categories):
             side_cols[idx].button(
-                f"{option}", on_click=annotate, args=(option, json_dict, JSON_PATH)
+                f"{option}", on_click=annotate, args=(option, json_dict, state.json_path)
             )
     else:
         for idx, option in enumerate(state.categories):
