@@ -1,5 +1,6 @@
-default_directory: D:\stable diffusion outputs
-json_path: D:\stable diffusion outputs\annotations.json
+default_directory: ""
+json_path: ""
+use_json: False
 categories: keep, delete, fix, other
 clamp_image: True
 image_height_clamp: 896
