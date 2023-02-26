@@ -8,8 +8,6 @@ from omegaconf import OmegaConf
 from utils import (get_filtered_files, load_image, load_json, save_json,
                    update_json)
 
-# TODO: Add toggle for full resolution
-# TODO: Maybe add height clamp option
 
 def set_current_file():
     """Set the current file to the index of the
@@ -57,30 +55,15 @@ def annotate(label: str, results_d: Dict[str, Dict[str, str]], json_path: str) -
     update_json(results_d, json_path)
 
 
-def filter_json():
-    """Filter a json file by removing keys.
-    """
-    # filter and remove keys from json file
-    json_d = load_json(state.json_path)
-    remove_keys = state.annotations.keys()
-    filtered_d = {
-        file: annotation
-        for (file, annotation) in json_d["files"].items()
-        if file not in remove_keys
-    }
-    if len(filtered_d) == 0:
-        json_d = {}
-    else:
-        json_d["files"] = filtered_d
-    save_json(json_d, state.json_path)
-
-
 def make_folders_move_files() -> None:
     """Make folders for each unique annotation. Filter state dict
     and move annotated files to their respective folders.
     Remove files from json and delete the json file if it is empty.
     """
-    json_d = load_json(state.json_path)
+    if os.path.exists(state.json_path):
+        json_d = load_json(state.json_path)
+    else:
+        return
     annotation_set = set(json_d["files"].values())
     img_file_names = get_filtered_files(state.img_dir)
     for annotation in annotation_set:
@@ -102,10 +85,8 @@ def make_folders_move_files() -> None:
             state.annotations.pop(file, None)
             json_d["files"].pop(file, None)
     if len(json_d["files"]) > 0:
-        st.write("non zero json")
         save_json(json_d, state.json_path)
     else:
-        st.write("delete that guy")
         os.remove(state.json_path)
 
 
@@ -187,9 +168,8 @@ if "annotations" not in state and not img_names is None:
         st.write("No image files in folder. Nothing to annotate.")
 
 # only create a empty json file if the directory has images
-if not os.path.exists(JSON_PATH) and state.files:
-    st.write("SAVE EMPTY JSON")
-    save_json({}, JSON_PATH)
+if not os.path.exists(state.json_path) and state.files:
+    save_json({}, state.json_path)
 # set order of UI elements
 n_annotated = len(state.annotations)
 remaining = len(state.files) - state.counter
@@ -198,8 +178,9 @@ info_placeholder = st.sidebar.empty()
 info_placeholder.info(f"Annotated: {n_annotated}, Remaining: {remaining}")
 cols_placeholder = st.sidebar.empty()
 st.sidebar.markdown("---")
-move_col, reset_col = st.sidebar.columns(2)
+move_col, clamp_col, reset_col = st.sidebar.columns(3)
 move_col.button("Move Files", on_click=make_folders_move_files)
+is_clamped = clamp_col.checkbox("Clamp Height", value=True)
 st.sidebar.markdown("---")
 with st.sidebar.expander("Expand for more options"):
     new_img_dir = st.text_input(
@@ -221,18 +202,20 @@ with st.sidebar.expander("Expand for more options"):
     add_hide_button = c2.checkbox("Hide Image Button")
 
 if clear_annotations:
-    st.write("CLEAR")
-    save_json({}, state.json_path)
+    if state.files:
+        save_json({}, state.json_path)
+        remaining = len(state.files)
+    else:
+        remaining = 0
     state.annotations = {}
     n_annotated = 0
-    remaining = len(state.files)
     state.counter = 0
     info_placeholder.info(f"Annotated: {n_annotated}, Remaining: {remaining}")
 if state.counter < len(state.files):
     if state.hide_state == 0:
         selected_file = state.current_file
         file_path = os.path.join(state.img_dir, selected_file)
-        image = load_image(file_path, IMG_HEIGHT_CLAMP)
+        image = load_image(file_path, IMG_HEIGHT_CLAMP, is_clamped)
         st.image(image, use_column_width="never")
         st.write(selected_file)
         json_dict = {"directory": state.img_dir, "files": state.annotations}
@@ -244,8 +227,8 @@ if state.counter < len(state.files):
         for idx, option in enumerate(state.categories):
             side_cols[idx].button(f"{option}")
 
-    if add_hide_button:
-        reset_col.button("CLEAR", on_click=change_hide_state)
-
 else:
     cols_placeholder.info("Everything is annotated.")
+
+if add_hide_button:
+    reset_col.button("CLEAR", on_click=change_hide_state)
