@@ -68,9 +68,9 @@ def get_filtered_files(
     """
     try:
         files = os.listdir(file_dir)
+        return [file for file in files if file.rsplit(".", 1)[-1] in ext_list]
     except:
         return None
-    return [file for file in files if file.rsplit(".", 1)[-1] in ext_list]
 
 
 def load_image(image_path: str, height: int = 896, is_clamped: bool = True) -> Image:
