@@ -130,3 +130,6 @@ dmypy.json
 
 # config file (for updates)
 config.yml
+
+# json annotation file
+annotations.json
