@@ -57,6 +57,14 @@ class Annotator:
             self.state.annotations = {}
         if "files" not in self.state:
             self.state.files = []
+        if "base_dir" not in self.state:
+            self.state.base_dir = ""
+        if "update_base_dir" not in self.state:
+            self.state.update_base_dir = ""
+        if "sub_dir" not in self.state:
+            self.state.sub_dir = ""
+        if "update_sub_dir" not in self.state:
+            self.state.update_sub_dir = ""
 
     def set_ui(self):
         st.sidebar.title("Image Annotator")
@@ -194,10 +202,20 @@ class Annotator:
 
     def change_dir(self):
         if not os.path.isdir(self.state.update_dir):
-            st.error("Not a valid directory...Please enter another one.")
+            st.error(f"{self.state.update_dir} is not a valid directory...Please enter another one.")
         else:
             self.state.img_dir = self.state.update_dir
             self.reset_imgs()
+
+    def change_base(self):
+        if not os.path.isdir(self.state.update_base_dir):
+            st.error("Not a valid base directory...Please enter another one.")
+        else:
+            self.state.base_dir = self.state.update_base_dir
+
+    def change_sub(self):
+        self.state.update_dir = os.path.join(self.state.base_dir, self.state.update_sub_dir)
+        self.change_dir()
 
     def update_categories(self):
         self.state.categories = self.state.update_categories
@@ -211,9 +229,14 @@ class Annotator:
         self.move_col.button("Move Files", on_click=self.make_folders_move_files)
         self.state.clamp_state = self.clamp_col.checkbox("Clamp Height", value=True)
         with self.expander_placeholder.expander("Expand for more options"):
-            st.text_input(
-                "full directory path to image files", key="update_dir", placeholder=self.state.img_dir, on_change=self.change_dir
-            )
+            self.use_base = st.checkbox("Use Base Directory")
+            if self.use_base:
+                st.text_input("base directory path", key="update_base_dir", placeholder=self.state.base_dir, on_change=self.change_base)
+                st.text_input("subdirectory folder", key="update_sub_dir", placeholder=self.state.sub_dir, on_change=self.change_sub)
+            else:
+                st.text_input(
+                    "full directory path to image files", key="update_dir", placeholder=self.state.img_dir, on_change=self.change_dir
+                )
             show_categories = self.state.categories
             if type(show_categories) == list:
                 show_categories = ", ".join(show_categories)
