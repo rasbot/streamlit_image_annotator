@@ -3,16 +3,28 @@ import shutil
 from typing import Dict, List
 
 import streamlit as st
+from streamlit.elements.utils import _shown_default_value_warning
 from omegaconf import OmegaConf
 
 from utils import (get_filtered_files, load_image, load_json, save_json,
                    update_json)
 
+_shown_default_value_warning = True
+
 class Annotator:
     def __init__(self, config_path: str="config.yml"):
+        """Initialize the Annotator class.
+
+        Args:
+            config_path (str, optional): Path to config file. Defaults to "config.yml".
+        """
         self.config_path = config_path
 
     def get_config_data(self):
+        """Load config data from the yml file. This will save the config file
+        with defaults based on the working directory if they are blank.
+        These are where `update_config` is set to true.
+        """
         update_config = False
         assert self.config_path.rsplit(".", 1)[-1] in ("yml", "yaml"), "Config file must be a yml or yaml file."
         conf = OmegaConf.load(self.config_path)
@@ -34,7 +46,11 @@ class Annotator:
         self.CLAMP_IMAGE = conf.clamp_image
 
     def set_state_dict(self):
-
+        """Set the state dictionary by adding key
+        value pairs that will be used in the app.
+        Some default to config variables, others default to empty
+        strings or 0.
+        """
         self.state = st.session_state
 
         if "img_dir" not in self.state:
@@ -65,8 +81,11 @@ class Annotator:
             self.state.sub_dir = ""
         if "update_sub_dir" not in self.state:
             self.state.update_sub_dir = ""
+        if "is_expanded" not in self.state:
+            self.state.is_expanded = False
 
     def set_ui(self):
+        """Set the order of the UI elements for the sidebar."""
         st.sidebar.title("Image Annotator")
         # set up order of sidebar UI elements
         self.back_placeholder = st.sidebar.empty()
@@ -79,6 +98,8 @@ class Annotator:
         self.expander_placeholder = st.sidebar.empty()
 
     def set_dir(self):
+        """Set the image directory and get image files if any exist.
+        Also sets the current file in the state dict."""
         if not os.path.isdir(self.state.img_dir):
             st.error(f"{self.state.img_dir} is not a valid directory!")
         else:
@@ -155,7 +176,7 @@ class Annotator:
                     img_file_path = os.path.join(self.state.img_dir, file)
                     file_dest = os.path.join(self.state.img_dir, annotation, file)
                     shutil.move(img_file_path, file_dest)
-            self.move_placeholder.write(f"moving {n_files} to {annotation}...")
+            st.write(f"moving {n_files} images to {annotation}...")
             for file in remove_files:
                 self.state.annotations.pop(file, None)
                 json_d["files"].pop(file, None)
@@ -170,9 +191,6 @@ class Annotator:
         are filtered to png and jpg (specified in config.yml)
         and sorted. If the image directory is not a
         valid directory, return None.
-
-        Args:
-            image_dir (str): Directory with images to annotate.
 
         Returns:
             List[str]: List of sorted image paths.
@@ -194,33 +212,44 @@ class Annotator:
         self.state.files = img_file_names
         if self.state.files:
             self.state.current_file = self.state.files[self.state.counter]
-        else:
-            st.write("No image files in folder. Nothing to annotate.")
+        # else:
+        #     st.write("No image files in folder. Nothing to annotate.")
         self.remaining = len(self.state.files)
         self.n_annotated = 0
         self.info_placeholder.info(f"Annotated: {self.n_annotated}, Remaining: {self.remaining}")
 
     def change_dir(self):
+        """Change directory and reset images.
+        """
         if not os.path.isdir(self.state.update_dir):
-            st.error(f"{self.state.update_dir} is not a valid directory...Please enter another one.")
+            st.error(f"{self.state.update_dir} is not a valid directory...Please enter another one. Fuck tiddies")
         else:
-            self.state.img_dir = self.state.update_dir
-            self.reset_imgs()
+            if self.state.img_dir != self.state.update_dir:
+                self.state.img_dir = self.state.update_dir
+                self.reset_imgs()
 
     def change_base(self):
+        """Change the base directory.
+        """
         if not os.path.isdir(self.state.update_base_dir):
             st.error("Not a valid base directory...Please enter another one.")
         else:
             self.state.base_dir = self.state.update_base_dir
 
     def change_sub(self):
+        """Change the sub directory that will be joined to the base directory.
+        """
         self.state.update_dir = os.path.join(self.state.base_dir, self.state.update_sub_dir)
         self.change_dir()
 
     def update_categories(self):
+        """Update the categories variable.
+        """
         self.state.categories = self.state.update_categories
 
     def set_ui_values(self):
+        """Set the UI element values and change any display values needed.
+        """
         self.n_annotated = len(self.state.annotations)
         self.remaining = len(self.state.files) - self.state.counter
         self.back_placeholder.button("BACK", on_click=self.change_img, args=(-1,))
@@ -228,20 +257,22 @@ class Annotator:
         self.move_col, self.clamp_col, self.reset_col = self.move_clear_buttons_placeholder.columns(3)
         self.move_col.button("Move Files", on_click=self.make_folders_move_files)
         self.state.clamp_state = self.clamp_col.checkbox("Clamp Height", value=True)
-        with self.expander_placeholder.expander("Expand for more options"):
+        container = self.expander_placeholder.expander("Expand for more options", expanded=self.state.is_expanded)
+        with container:
+            self.state.is_expanded = True
             self.use_base = st.checkbox("Use Base Directory")
             if self.use_base:
-                st.text_input("base directory path", key="update_base_dir", placeholder=self.state.base_dir, on_change=self.change_base)
-                st.text_input("subdirectory folder", key="update_sub_dir", placeholder=self.state.sub_dir, on_change=self.change_sub)
+                st.text_input("base directory path", key="update_base_dir", placeholder=self.state.base_dir, value=self.state.base_dir, on_change=self.change_base)
+                st.text_input("subdirectory folder", key="update_sub_dir", placeholder=self.state.sub_dir, value=self.state.sub_dir, on_change=self.change_sub)
             else:
                 st.text_input(
-                    "full directory path to image files", key="update_dir", placeholder=self.state.img_dir, on_change=self.change_dir
+                    "full directory path to image files", key="update_dir", placeholder=self.state.img_dir, value=self.state.img_dir, on_change=self.change_dir
                 )
             show_categories = self.state.categories
             if type(show_categories) == list:
                 show_categories = ", ".join(show_categories)
             st.text_input(
-                "annotation button names (comma separated)", key="update_categories", placeholder=show_categories, on_change=self.update_categories
+                "annotation button names (comma separated)", key="update_categories", placeholder=show_categories, value=show_categories, on_change=self.update_categories
             )
             if type(self.state.categories) == str:
                 self.state.categories = [opt.strip() for opt in self.state.categories.split(",")]
@@ -252,13 +283,7 @@ class Annotator:
         if self.clear_annotations:
             if self.state.files:
                 save_json({}, self.state.json_path)
-                self.remaining = len(self.state.files)
-            else:
-                self.remaining = 0
-            self.state.annotations = {}
-            self.n_annotated = 0
-            self.state.counter = 0
-            self.info_placeholder.info(f"Annotated: {self.n_annotated}, Remaining: {self.remaining}")
+            self.reset_imgs()
 
         if self.add_hide_button:
             self.reset_col.button("CLEAR", on_click=self.change_hide_state)
@@ -283,6 +308,8 @@ class Annotator:
 
 
     def run(self):
+        """Method that keeps track of the order of methods called.
+        """
         self.get_config_data()
         self.set_state_dict()
         self.set_ui()
