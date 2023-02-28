@@ -1,6 +1,0 @@
-default_directory: 
-json_path: 
-default_categories: 
-clamp_image: true
-image_height_clamp: 896
-filter_files: png, jpg

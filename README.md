@@ -71,17 +71,29 @@ If you named it streamlit (as I did in the above example). Or, for `venv`:
 
 A few options can be configured to running `set_config.bat`. This file will write config values to `config.yml`. You can manually set these values at any time.
 
-## streamlit credentials
+## set_config.bat
+
+### streamlit credentials
 Streamlit can track some usage statistics. Nothing out of the ordinary, but I prefer to not allow it. When launching the `set_config.bat` file, it will attempt to add an opt-out this to `<user_name>\.streamlit\credentials.toml` file in Windows.
 
-## default directory
+### default directory
 You can point the app to a default directory with your images. You can at any time in the app change to a different directory, but this one will be used when you launch the app.
 
-## json file
-Images will be annotated with labels and stored in a dictionary while the app is running. You can move files within the app, but as a backup, a json file with the annotations is created. `set_config.bat` will set the path to the json file in the `default_directory` that you set.
+### default categories
+The `default_categories` used in this app are what buttons you will use to annotate files. The defaults are "keep, delete, fix, other". You can change the defaults here, or leave it blank to use the default categories. These can be changed at any time in the `config.yml` file, or on the fly in the app. The `default_categories` will be folders created where your annotated images will be moved.
 
-## categories
-The `categories` used in this app are what buttons you will use to annotate files. The default is "keep, delete, fix, other". You can change the default here, or leave it blank to use the default categories. These can be changed at any time in the `config.yml` file, or on the fly in the app. The `categories` will be folders created where your annotated images will be moved.
+## config.yml
+
+Other than the variables set using `set_config.bat`, there are a few other variables to mention.
+
+### clamp image
+This is the default value for if image heights will be clamped. Since larger images will not be completely visible in your browser, the image can be clamped to a height value. This can be toggled on/off in the UI, so this simply sets the default behavior whenever you launch the app.
+
+### image height clamp
+This is a integer value of the number if image pixels to clamp. The value set at 896 was what worked for my browswer / monitor. Ideally this should be the largest value that displays the whole height of the image. As mentioned, larger images can be toggled to their full resolution in the UI at any time.
+
+### filter files
+This will most likely never be changed, but if you have other image files outside of png and jpg images, you can add them to the list here, otherwise they will not be included in the images shown when using the app.
 
 # Using the App
 
