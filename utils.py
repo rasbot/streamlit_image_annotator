@@ -1,12 +1,88 @@
 import json
 import os
-from typing import List
+from typing import List, Dict, Tuple
 
 from omegaconf import OmegaConf
 from PIL import Image
 
 conf = OmegaConf.load("config.yml")
 FILTER_EXT_LIST = [filt.strip() for filt in conf.filter_files.split(",")]
+
+
+def concat_arr(arr: List[str]) -> List[str]:
+    """Concat elements in a list. For an element with
+    a colon, concat all elements after that do not have a
+    colon. This is used for getting the meta_dict.
+
+    Args:
+        arr (List[str]): List of strings for metadata.
+
+    Returns:
+        List[str]: Concatenated list of strings for metadata.
+    """
+    result = []
+    current_string = ''
+    for i, s in enumerate(arr):
+        if ':' in s:
+            if current_string:
+                result[-1] += current_string
+                current_string = ''
+            result.append(s)
+        else:
+            current_string += s
+    if current_string:
+        result[-1] += current_string
+
+    return result
+
+
+def get_metadata_dict(image_path: str) -> Dict[str, str]:
+    """Get a dictionary of metadata from an image.
+    This will only apply to images generated with Stable
+    Diffusion using Automatic1111's webui repo.
+
+    Args:
+        image_path (str): Path to image file.
+
+    Returns:
+        Dict[str, str]: Dict with metadata info.
+    """
+    with Image.open(image_path) as img_file:
+        metadata = img_file.info
+    metadata_str = 'Prompt: ' + metadata["parameters"]
+    split_meta = metadata_str.split("\n")
+    sub_split = split_meta[-1].split(", ")
+    split_meta = split_meta[:-1]
+    split_meta.extend(sub_split)
+    split_meta = concat_arr(split_meta)
+    meta_d = {}
+    for row in split_meta:
+        key, val = row.rsplit(": ", 1)
+        meta_d[key] = val
+    return meta_d
+
+
+def get_metadata_str(image_path: str) -> Tuple[str, str]:
+    """Get a metadata dict from an image path and
+    create a string with markdown code to display in the
+    main app.
+
+    Args:
+        image_path (str): Path to image file.
+
+    Returns:
+        Tuple[str, str]: String of prompt data and string
+            of metadata.
+    """
+    meta_dict = get_metadata_dict(image_path)
+    prompts = ""
+    meta_data = ""
+    for k,v in meta_dict.items():
+        if k in ("Prompt", "Negative prompt"):
+            prompts += f"{k} : <span style='color:darkorange'>{v}</span>\n"
+        else:
+            meta_data += f"{k} : <span style='color:darkorange'>{v}</span>\n"
+    return prompts, meta_data
 
 
 def save_json(json_dict: dict, json_path: str) -> None:
