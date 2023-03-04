@@ -7,7 +7,7 @@ from streamlit.elements.utils import _shown_default_value_warning
 from omegaconf import OmegaConf
 
 from utils import (get_filtered_files, load_image, load_json, save_json,
-                   update_json)
+                   update_json, get_metadata_str)
 
 _shown_default_value_warning = True
 
@@ -83,6 +83,10 @@ class Annotator:
             self.state.update_sub_dir = ""
         if "is_expanded" not in self.state:
             self.state.is_expanded = False
+        if "show_meta" not in self.state:
+            self.state.show_meta = False
+        if "show_prompt" not in self.state:
+            self.state.show_prompt = False
 
     def set_ui(self):
         """Set the order of the UI elements for the sidebar."""
@@ -93,8 +97,11 @@ class Annotator:
         self.options_buttons_placeholder = st.sidebar.empty()
         st.sidebar.markdown("---")
         self.move_clear_buttons_placeholder = st.sidebar.empty()
+        self.checkbox_placeholder = st.sidebar.empty()
         st.sidebar.markdown("---")
         self.move_placeholder = st.sidebar.empty()
+        self.prompt_info = st.sidebar.empty()
+        self.meta_info = st.sidebar.empty()
         self.expander_placeholder = st.sidebar.empty()
 
     def set_dir(self):
@@ -254,9 +261,12 @@ class Annotator:
         self.remaining = len(self.state.files) - self.state.counter
         self.back_placeholder.button("BACK", on_click=self.change_img, args=(-1,))
         self.info_placeholder.info(f"Annotated: {self.n_annotated}, Remaining: {self.remaining}")
-        self.move_col, self.clamp_col, self.reset_col = self.move_clear_buttons_placeholder.columns(3)
+        self.move_col, self.reset_col = self.move_clear_buttons_placeholder.columns(2)
+        self.clamp_col, self.prompt_col, self.meta_col = self.checkbox_placeholder.columns(3)
         self.move_col.button("Move Files", on_click=self.make_folders_move_files)
         self.state.clamp_state = self.clamp_col.checkbox("Clamp Height", value=True)
+        self.state.show_prompt = self.prompt_col.checkbox("Show Prompt", value=False)
+        self.state.show_meta = self.meta_col.checkbox("Metadata", value=False)
         container = self.expander_placeholder.expander("Expand for more options", expanded=self.state.is_expanded)
         with container:
             self.state.is_expanded = True
@@ -289,11 +299,15 @@ class Annotator:
             self.reset_col.button("CLEAR", on_click=self.change_hide_state)
         if self.state.counter < len(self.state.files):
             if self.state.hide_state == 0:
-                selected_file = self.state.current_file
-                file_path = os.path.join(self.state.img_dir, selected_file)
-                image = load_image(file_path, self.IMG_HEIGHT_CLAMP, self.state.clamp_state)
+                self.file_path = os.path.join(self.state.img_dir, self.state.current_file)
+                prompts, meta_data = get_metadata_str(self.file_path)
+                if self.state.show_prompt:
+                    self.prompt_info.markdown(prompts, unsafe_allow_html=True)
+                if self.state.show_meta:
+                    self.meta_info.markdown(meta_data, unsafe_allow_html=True)
+                image = load_image(self.file_path, self.IMG_HEIGHT_CLAMP, self.state.clamp_state)
                 st.image(image, use_column_width="never")
-                st.write(selected_file)
+                st.write(self.state.current_file)
                 json_dict = {"directory": self.state.img_dir, "files": self.state.annotations}
                 for idx, option in enumerate(self.state.categories):
                     self.button_cols[idx].button(
