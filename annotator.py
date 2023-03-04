@@ -3,13 +3,13 @@ import shutil
 from typing import Dict, List
 
 import streamlit as st
-from streamlit.elements.utils import _shown_default_value_warning
+# from streamlit.elements.utils import _shown_default_value_warning
 from omegaconf import OmegaConf
 
 from utils import (get_filtered_files, load_image, load_json, save_json,
                    update_json, get_metadata_str)
 
-_shown_default_value_warning = True
+# _shown_default_value_warning = False
 
 class Annotator:
     def __init__(self, config_path: str="config.yml"):
