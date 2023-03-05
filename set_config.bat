@@ -1,4 +1,20 @@
 @echo off
+
+REM Create config file with default values if it does not exist
+set FILE=config.yml
+
+if not exist %FILE% (
+    echo Creating %FILE%...
+    echo default_directory: >> %FILE%
+    echo json_path: >> %FILE%
+    echo default_categories: keep, delete, fix, other>> %FILE%
+    echo clamp_image: true>> %FILE%
+    echo image_height_clamp: 896>> %FILE%
+    echo filter_files: png, jpg>> %FILE%
+) else (
+    echo %FILE% already exists. Skipping creation...
+)
+
 set /p default_directory=Please enter a default directory path: 
 set /p default_categories=Set default category buttons. See the README for more info. Hit enter to use defaults "keep, delete, fix, other" or provide a comma separated list here: 
 set "streamlit_config=%USERPROFILE%\.streamlit\credentials.toml"
