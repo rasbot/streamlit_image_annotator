@@ -129,7 +129,7 @@ dmypy.json
 .pyre/
 
 # config file (for updates)
-config.yml
+# config.yml
 
 # json annotation file
 annotations.json
