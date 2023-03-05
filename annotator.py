@@ -6,7 +6,7 @@ import streamlit as st
 from omegaconf import OmegaConf
 
 from utils import (get_filtered_files, load_image, load_json, save_json,
-                   update_json, get_metadata_str)
+                   update_json, get_metadata_str, has_config)
 
 
 class Annotator:
@@ -25,7 +25,7 @@ class Annotator:
         """
         update_config = False
         assert self.config_path.rsplit(".", 1)[-1] in ("yml", "yaml"), "Config file must be a yml or yaml file."
-        assert os.path.isfile(self.config_path), "config.yml file has not been created. Please run `set_config.bat` to create config file."
+        assert has_config, "config.yml file has not been created. Please run `set_config.bat` to create config file."
         conf = OmegaConf.load(self.config_path)
         if not conf.default_directory or not os.path.isdir(conf.default_directory):
             update_config = True
