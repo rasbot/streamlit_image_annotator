@@ -5,6 +5,7 @@ from typing import List, Dict, Tuple
 from omegaconf import OmegaConf
 from PIL import Image
 
+assert os.path.isfile("config.yml"), "config.yml file has not been created. Please run `set_config.bat` to create config file."
 conf = OmegaConf.load("config.yml")
 FILTER_EXT_LIST = [filt.strip() for filt in conf.filter_files.split(",")]
 
