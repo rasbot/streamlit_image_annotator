@@ -7,7 +7,9 @@ from PIL import Image
 
 
 has_config = os.path.isfile("config.yml")
-assert has_config, "config.yml file has not been created. Please run `set_config.bat` to create config file."
+assert (
+    has_config
+), "config.yml file has not been created. Please run `set_config.bat` to create config file."
 conf = OmegaConf.load("config.yml")
 FILTER_EXT_LIST = [filt.strip() for filt in conf.filter_files.split(",")]
 
@@ -24,15 +26,15 @@ def concat_arr(arr: List[str]) -> List[str]:
         List[str]: Concatenated list of strings for metadata.
     """
     result = []
-    current_string = ''
-    for i, s in enumerate(arr):
-        if ':' in s:
+    current_string = ""
+    for row in arr:
+        if ":" in row:
             if current_string:
                 result[-1] += current_string
-                current_string = ''
-            result.append(s)
+                current_string = ""
+            result.append(row)
         else:
-            current_string += s
+            current_string += row
     if current_string:
         result[-1] += current_string
 
@@ -54,7 +56,7 @@ def get_metadata_dict(image_path: str) -> Dict[str, str]:
         metadata = img_file.info
     if "parameters" not in metadata:
         return metadata
-    metadata_str = 'Prompt: ' + metadata["parameters"]
+    metadata_str = "Prompt: " + metadata["parameters"]
     split_meta = metadata_str.split("\n")
     sub_split = split_meta[-1].split(", ")
     split_meta = split_meta[:-1]
@@ -79,16 +81,16 @@ def get_metadata_str(image_path: str) -> Tuple[str, str]:
         Tuple[str, str]: String of prompt data and string
             of metadata.
     """
-    if image_path[-3:] != 'png':
+    if image_path[-3:] != "png":
         return "", ""
     meta_dict = get_metadata_dict(image_path)
     prompts = ""
     meta_data = ""
-    for k,v in meta_dict.items():
-        if k in ("Prompt", "Negative prompt"):
-            prompts += f"{k} : <span style='color:darkorange'>{v}</span>\n"
+    for meta_key, meta_val in meta_dict.items():
+        if meta_key in ("Prompt", "Negative prompt"):
+            prompts += f"{meta_key} : <span style='color:darkorange'>{meta_val}</span>\n"
         else:
-            meta_data += f"{k} : <span style='color:darkorange'>{v}</span>\n"
+            meta_data += f"{meta_key} : <span style='color:darkorange'>{meta_val}</span>\n"
     return prompts, meta_data
 
 
