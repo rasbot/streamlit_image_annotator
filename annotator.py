@@ -54,14 +54,13 @@ class Annotator:
 
         if "img_dir" not in self.state:
             self.state.img_dir = self.IMAGE_DIR
-        if "update_dir" not in self.state:
-            self.state.update_dir = ""
         if "json_path" not in self.state:
             self.state.json_path = self.JSON_PATH
         if "categories" not in self.state:
             self.state.categories = self.CATEGORIES
-        if "update_categories" not in self.state:
-            self.state.update_categories = ""
+            self.state.split_categories = [
+                opt.strip() for opt in self.CATEGORIES.split(",")
+            ]
         if "clamp_state" not in self.state:
             self.state.clamp_state = self.CLAMP_IMAGE
         if "counter" not in self.state:
@@ -72,14 +71,6 @@ class Annotator:
             self.state.annotations = {}
         if "files" not in self.state:
             self.state.files = []
-        if "base_dir" not in self.state:
-            self.state.base_dir = ""
-        if "update_base_dir" not in self.state:
-            self.state.update_base_dir = ""
-        if "sub_dir" not in self.state:
-            self.state.sub_dir = ""
-        if "update_sub_dir" not in self.state:
-            self.state.update_sub_dir = ""
         if "is_expanded" not in self.state:
             self.state.is_expanded = False
         if "show_meta" not in self.state:
@@ -218,8 +209,6 @@ class Annotator:
         self.state.files = img_file_names
         if self.state.files:
             self.state.current_file = self.state.files[self.state.counter]
-        # else:
-        #     st.write("No image files in folder. Nothing to annotate.")
         self.remaining = len(self.state.files)
         self.n_annotated = 0
         self.info_placeholder.info(f"Annotated: {self.n_annotated}, Remaining: {self.remaining}")
@@ -227,31 +216,17 @@ class Annotator:
     def change_dir(self):
         """Change directory and reset images.
         """
-        if not os.path.isdir(self.state.update_dir):
-            st.error(f"{self.state.update_dir} is not a valid directory...Please enter another one.")
+        if not os.path.isdir(self.state._img_dir):
+            st.error(f"{self.state._img_dir} is not a valid directory...Please enter another one.")
         else:
-            if self.state.img_dir != self.state.update_dir:
-                self.state.img_dir = self.state.update_dir
-                self.reset_imgs()
-
-    def change_base(self):
-        """Change the base directory.
-        """
-        if not os.path.isdir(self.state.update_base_dir):
-            st.error("Not a valid base directory...Please enter another one.")
-        else:
-            self.state.base_dir = self.state.update_base_dir
-
-    def change_sub(self):
-        """Change the sub directory that will be joined to the base directory.
-        """
-        self.state.update_dir = os.path.join(self.state.base_dir, self.state.update_sub_dir)
-        self.change_dir()
+            self.state.img_dir = self.state._img_dir
+            self.reset_imgs()
 
     def update_categories(self):
         """Update the categories variable.
         """
-        self.state.categories = self.state.update_categories
+        self.state.categories = self.state._categories
+        self.state.split_categories = [opt.strip() for opt in self.state.categories.split(",")]
 
     def set_ui_values(self):
         """Set the UI element values and change any display values needed.
@@ -269,23 +244,12 @@ class Annotator:
         container = self.expander_placeholder.expander("Expand for more options", expanded=self.state.is_expanded)
         with container:
             self.state.is_expanded = True
-            self.use_base = st.checkbox("Use Base Directory")
-            if self.use_base:
-                st.text_input("base directory path", key="update_base_dir", placeholder=self.state.base_dir, value=self.state.base_dir, on_change=self.change_base)
-                st.text_input("subdirectory folder", key="update_sub_dir", placeholder=self.state.sub_dir, value=self.state.sub_dir, on_change=self.change_sub)
-            else:
-                st.text_input(
-                    "full directory path to image files", key="update_dir", placeholder=self.state.img_dir, value=self.state.img_dir, on_change=self.change_dir
-                )
+            st.text_input("full directory path to image files", value=self.IMAGE_DIR, key="_img_dir", on_change=self.change_dir)
             show_categories = self.state.categories
             if type(show_categories) == list:
                 show_categories = ", ".join(show_categories)
-            st.text_input(
-                "annotation button names (comma separated)", key="update_categories", placeholder=show_categories, value=show_categories, on_change=self.update_categories
-            )
-            if type(self.state.categories) == str:
-                self.state.categories = [opt.strip() for opt in self.state.categories.split(",")]
-            self.button_cols = self.options_buttons_placeholder.columns(len(self.state.categories))
+            st.text_input("annotation button names (comma separated)", value=self.CATEGORIES, key="_categories", on_change=self.update_categories)
+            self.button_cols = self.options_buttons_placeholder.columns(len(self.state.split_categories))
             self.c1, self.c2 = st.columns(2)
             self.clear_annotations = self.c1.button("Reset Annotations?")
             self.add_hide_button = self.c2.checkbox("Hide Image Button")
@@ -308,12 +272,12 @@ class Annotator:
                 st.image(image, use_column_width="never")
                 st.write(self.state.current_file)
                 json_dict = {"directory": self.state.img_dir, "files": self.state.annotations}
-                for idx, option in enumerate(self.state.categories):
+                for idx, option in enumerate(self.state.split_categories):
                     self.button_cols[idx].button(
                         f"{option}", on_click=self.annotate, args=(option, json_dict, self.state.json_path)
                     )
             else:
-                for idx, option in enumerate(self.state.categories):
+                for idx, option in enumerate(self.state.split_categories):
                     self.button_cols[idx].button(f"{option}")
 
         else:
