@@ -52,6 +52,8 @@ def get_metadata_dict(image_path: str) -> Dict[str, str]:
     """
     with Image.open(image_path) as img_file:
         metadata = img_file.info
+    if "parameters" not in metadata:
+        return metadata
     metadata_str = 'Prompt: ' + metadata["parameters"]
     split_meta = metadata_str.split("\n")
     sub_split = split_meta[-1].split(", ")
@@ -77,6 +79,8 @@ def get_metadata_str(image_path: str) -> Tuple[str, str]:
         Tuple[str, str]: String of prompt data and string
             of metadata.
     """
+    if image_path[-3:] != 'png':
+        return "", ""
     meta_dict = get_metadata_dict(image_path)
     prompts = ""
     meta_data = ""
