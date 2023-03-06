@@ -228,7 +228,7 @@ class Annotator:
         """Change directory and reset images.
         """
         if not os.path.isdir(self.state.update_dir):
-            st.error(f"{self.state.update_dir} is not a valid directory...Please enter another one. Fuck tiddies")
+            st.error(f"{self.state.update_dir} is not a valid directory...Please enter another one.")
         else:
             if self.state.img_dir != self.state.update_dir:
                 self.state.img_dir = self.state.update_dir
