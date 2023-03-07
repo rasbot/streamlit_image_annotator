@@ -1,6 +1,6 @@
 <div align="center">
     <img src="images/logo.png" width="700" height="auto"/>
-<p>An annotation tool to sort through images, useful when generating a lot of images with Stable Diffusion.</p>
+<p>An annotation tool to sort through images, useful when generating a lot of images with Stable Diffusion. This image was modified with ControlNet.</p>
 </div>
 
 ## Table of Contents
@@ -22,21 +22,21 @@ This tool is helpful to sort images. A good use-case is when generating images w
 
 ## Example:
 
-You generate 50 images with a prompt like "a photo of two people in casual business attire shaking hands, office setting".
+You generate 50 images with a prompt like "a photo of a kitten wearing a top hat and a monocle".
 
-When looking at the resulting images you might want to organize them into categories like "keep", "delete", "fix", where the "fix" option could be so you can inpaint to fix any details. Maybe your business people have funny hands?
+When looking at the resulting images you might want to organize them into categories like "keep", "delete", "fix", where the "fix" option could be so you can inpaint to fix any details. Maybe your kittens have funny paws?
 
 This app gives you a UI to go through images and organize them into different categories, where you can move them into folders for easy organization.
 
 # Installation
 
-This app uses `streamlit` and has issues with some versions of Python. 3.9.7 does not work specifically. I am using 3.9.12. I have tested 3.9.13 and that works as well. so I suggest using 3.9.12 for now, or using that version if you run into issues with `streamlit`.
+This app uses `streamlit` and has issues with some versions of Python. 3.9.7 does not work specifically. I am using 3.9.12. I have tested 3.9.13 and that works as well. so I suggest using 3.9.12 or 3.9.13 for now, or using either version if you run into issues with `streamlit`.
 
 __Note: This installation guide is for Windows. Please adjust accordingly if you are using Linux or Mac.__
 
 You can create a virtual environment with `conda` if you do not have an installation of 3.9.12.  Or, if you have an environment with 3.9.12, you can use `venv` by pointing it to that installation. First you will need to clone this repo. You do not need to create a virtual environment if you do not want to, but it is always a good idea! If you do not, just clone the repo and skip to step 5.
 
-1. Create a conda environment with Python 3.9.12, or if you already have one, pat yourself on the back and move on to step 2.
+1. Create a conda environment with Python 3.9.12, or if you already have one, pat yourself on the back and move on to step 2. Here I am creating a conda environment called "streamlit".
 ```bash
 > conda create --name streamlit python=3.9.12
 ```
@@ -61,6 +61,7 @@ If you named it streamlit (as I did in the above example). Or, for `venv`:
 ```bash
 > .\venv\Scripts\activate
 ```
+__Make sure you are in your activated environment before installing requirements or launching the app when using it.__
 
 5. Install requirements:
 ```bash
@@ -69,7 +70,7 @@ If you named it streamlit (as I did in the above example). Or, for `venv`:
 
 # Config
 
-A few options can be configured to running `set_config.bat`. This file will write config values to `config.yml`. You can manually set these values at any time.
+A few options can be configured to running `set_config.bat`. This file will write config values to `config.yml`. When run for the first time, `config.yml` will be created. You can manually set these values at any time in the config file.
 
 ## set_config.bat
 
@@ -83,7 +84,7 @@ You can point the app to a default directory with your images. You can at any ti
 This will initially be blank, and after running the app for the first time, will have the path to the repo. A JSON will be created when you run the app in the repo directory that will store annotations. After files are moved, the data in the JSON file will be deleted.
 
 ### default categories
-The `default_categories` used in this app are what buttons you will use to annotate files. Initially this will be blank, but after running the app for the first time, the defaults will be "keep, delete, fix, other". These can be changed at any time in the `config.yml` file, or on the fly in the app. The `default_categories` will be folders created where your annotated images will be moved.
+The `default_categories` used in this app are what buttons you will use to annotate files. Initially these will be "keep, delete, fix, other". These can be changed at any time in the `config.yml` file, or on the fly in the app. The `default_categories` will be folders created where your annotated images will be moved.
 
 ## config.yml
 
@@ -100,11 +101,11 @@ This will most likely never be changed, but if you have other image files outsid
 
 # Using the App
 
-Launch the app from the repo directory in your terminal:
+Launch the app from the repo directory by opening `launch_app.bat` or in your terminal:
 ```bash
-> streamlit run .\annotatator.py
+> launch_app.bat
 ```
-Which will launch the app in a browser and point to the `default_directory` folder. You can easily change folders in the UI if you are not in the folder you want to use. Click on the "Expand for more options" if it is collapsed. Change the folder path and hit enter.
+Which will launch the app in a browser and point to the `default_directory` folder. The batch file will do a `git pull` to update the repo. Press any key after that to continue to launch the app. You can easily change folders in the UI if you are not in the folder you want to use. Click on the "Expand for more options" if it is collapsed. Change the folder path and hit enter.
 <div align="center">
     <img src="images/change_folder.gif"/>
     <p>Change the folder path.</p>
@@ -118,46 +119,32 @@ The buttons correspond to the categories provided in the "annotation button name
 
 ## App Demo
 
-Annotating / moving images into labeled folders is fairly straightforward. When you have specified a directory that has images, you simply click on the button you want to sort the image to. Each named button category will have a folder with the same name created in the image directory. If you label an image as "really cool image", and the next image as "delete", you will have 2 folders created, "really cool image" and "delete", with the two images being moved to their respective folders.
+Annotating / moving images into labeled folders is fairly straightforward. When you have specified a directory that has images, you simply click on the button you want to sort the image to. Each named button category will have a folder with the same name created in the image directory. If you label an image as "really cool image", and the next image as "delete", you will have 2 folders created, "really cool image" and "delete", with the two images being moved to their respective folders. The folders will be created when you click the `Move Files` button.
 <div align="center">
     <img src="images/demo.gif"/>
     <p>Annotating images with the app.</p>
 </div>
+
 You can change / add buttons on the fly, which will result in different folders being created when the `Move Files` button is pressed.
 
-## Expand for more options
-There is a collapsible menu with the directory path, the button names, and a few other options. This is collapsible in case you want to hide the directory path. Some of the sections have been mentioned, so this is to address the other sections not mentioned.
-
-## Use Base Directory
-If you have a directory that contains subfolders with images in them, it is easier to specify as base directory here. Click on this checkbox and you can specifiy the base directory path and subdirectory folder. If you do not check this, you must provide a full directory path to the folder you want to use, each time you switch directories.
-
-Ex: You have a folder called "stable diffusion outputs" in your D drive. In that folder you have several folders with images in them, such as "nature", "cyberpunk", "dreambooth". If the default folder is set to:
-
-> D:\stable diffusion outputs\dreambooth
-
-and you want to switch folders to "cyberpunk", you would need to pass the complete path to the folder:
-
-> D:\stable diffusion outputs\cyberpunk
-
-If you use the base/sub directories, your base directory would be:
-
-> D:\stable diffusion outputs
-
-and your sub directory would be:
-
-> cyberpunk
-
-This way you only need to change the sub directory. This is because streamlit has a weird issue where it won't display the current directory where you can edit it. I was able to have it display after it is changed, but initially the path will be blank. Streamlit has this issue on their backlog.
+### Show Prompt / Metadata Checkboxes
+If the images you are sorting have been created using Automatic1111's webui, metadata from the image generation is likely to be stored in the image. You can view this by clicking "Show Prompt" to see the image prompt, and "Metadata" to view metadata:
+<div align="center">
+    <img src="images/metadata.png"/>
+    <p>Metadata from png file.</p>
+</div>
 
 ### Hide Image Button
-Clicking this will create a button at the top which can be used to hide the current image. The button is named `CLEAR`, and can toggle the image being displayed.
+There is a collapsible menu with the directory path, the button names, and a few other options. This is collapsible in case you want to hide the directory path. Some of the sections have been mentioned, so this is to address the other sections not mentioned.
 
-### Reset Annotations?
-This will simply delete any annotations that have been stored.
+Clicking on the "Hide Image Button" checkbox will create a button at the top which can be used to hide the current image. The button is named `CLEAR`, and can toggle the image being displayed.
 <div align="center">
     <img src="images/hide_image.gif"/>
-    <p>Hiding the current image and clearing annotations.</p>
+    <p>Hiding the current image.</p>
 </div>
+
+### Reset Annotations?
+This will simply delete any annotations that have been stored and reset the count of annotated files in the UI.
 
 ### JSON file
 All of the annotation data is stored within the app when running, but as a backup a JSON file is created that temporarily stores the annotations. This was originally the way the annotations were stored and a separate script was called to move the files, but this can also be used as a backup in case the app is closed before you hit `Move Files`. Once any files are moved, they will be removed from the JSON file.
@@ -169,6 +156,6 @@ Regardless of the image directory you are in, the JSON file will be stored in th
 
 # Future Work
 
-This was created so I can use it, but if others find it useful and features are requested, I will add them. Otherwise there are some bugs to fix dealing with the text boxes, and features will be added when I think of ones that I would like to use.
+This was created so I can use it, but if others find it useful and features are requested, I will add them. Otherwise there are some bugs to fix, and features will be added when I think of ones that I would like to use.
 
 This could be written to use gradio and could be implemented in automatic 1111's webui, but gradio has some frustrating issues with clamping images and I felt that streamlit did a much better job overall.
