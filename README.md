@@ -6,10 +6,13 @@
 ## Table of Contents
 
 * [Introduction](#introduction)
+  * [Category Sorting](#annotation-and-file-sorting-using-category-buttons)
+  * [Keyword Sorting](#bulk-file-sorting-using-keyword-filters)
 * [Installation](#installation)
 * [Config](#config)
 * [Using the App](#using-the-app)
   * [App Demo](#app-demo)
+* [Future Work](#future-work)
 
 # Introduction
 
