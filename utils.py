@@ -88,10 +88,55 @@ def get_metadata_str(image_path: str) -> Tuple[str, str]:
     meta_data = ""
     for meta_key, meta_val in meta_dict.items():
         if meta_key in ("Prompt", "Negative prompt"):
-            prompts += f"{meta_key} : <span style='color:darkorange'>{meta_val}</span>\n"
+            prompts += (
+                f"{meta_key} : <span style='color:darkorange'>{meta_val}</span>\n"
+            )
         else:
-            meta_data += f"{meta_key} : <span style='color:darkorange'>{meta_val}</span>\n"
+            meta_data += (
+                f"{meta_key} : <span style='color:darkorange'>{meta_val}</span>\n"
+            )
     return prompts, meta_data
+
+
+def filter_by_keyword(
+    file_list: List[str], keyword: str, sep_=" "
+) -> Tuple[List[str], List[str]]:
+    """Filter a list of file names to ones that contain a keyword phrase.
+    This can be multiple words.
+
+    Args:
+        file_list (List[str]): List of file names to filter.
+        keyword (str): Keyword(s) to filter file names to.
+        sep_ (str, optional): Separator that will be used to split
+            the file names. Defaults to " ".
+
+    Returns:
+        Tuple[List[str], List[str]]: List of filtered file names not
+            containing the keyword(s) and a list of file names that do
+            contain the keyword(s).
+    """
+    file_list_ = file_list.copy()
+    filtered = []
+    for file in file_list:
+        no_ext = file.rsplit(".", 1)[0]
+        for char in "',()!?:":
+            no_ext = no_ext.replace(char, "")
+        split_file = no_ext.split(sep_)
+        if sep_ in keyword:
+            split_keyword = keyword.split(sep_)
+        else:
+            split_keyword = [keyword]
+        n_key = len(split_keyword)
+        first_idxs = [idx for idx, val in enumerate(split_file) if val==split_keyword[0]]
+        if first_idxs:
+            for idx in first_idxs:
+                if split_file[idx:idx+n_key]==split_keyword and file not in filtered:
+                    filtered.append(file)
+                    file_list_.remove(file)
+        elif keyword in split_file:
+            filtered.append(file)
+            file_list_.remove(file)
+    return file_list_, filtered
 
 
 def save_json(json_dict: dict, json_path: str) -> None:
