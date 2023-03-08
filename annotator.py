@@ -1,6 +1,6 @@
 import os
 import shutil
-from typing import Dict, List
+from typing import Dict, List, Tuple
 
 import streamlit as st
 from omegaconf import OmegaConf
@@ -12,6 +12,7 @@ from utils import (
     save_json,
     update_json,
     get_metadata_str,
+    filter_by_keyword,
     has_config,
 )
 
@@ -90,6 +91,12 @@ class Annotator:
             self.state.show_meta = False
         if "show_prompt" not in self.state:
             self.state.show_prompt = False
+        if "keywords" not in self.state:
+            self.state.keywords = ""
+            self.state.sep = " "
+            self.state.split_keywords = []
+        if "move" not in self.state:
+            self.state.move = False
 
     def set_ui(self):
         """Set the order of the UI elements for the sidebar."""
@@ -162,40 +169,69 @@ class Annotator:
         self.change_img(1)
         update_json(results_d, json_path)
 
-    def make_folders_move_files(self) -> None:
+    def get_keyword_file_dict(self):
+        """Create a dictionary with key = keyword, val = list of filtered file names
+        that contain they keyword.
+        """
+        file_list_ = self.img_file_names.copy()
+        self.keyword_dict = {}
+        for keyword in self.state.split_keywords:
+            if not self.state.sep:
+                self.state.sep = " "
+            file_list_, filtered_files = filter_by_keyword(
+                file_list_, keyword, self.state.sep
+            )
+            self.keyword_dict[keyword] = filtered_files
+
+    def make_folders_move_files(self, use_keywords: bool = False) -> None:
         """Make folders for each unique annotation. Filter state dict
         and move annotated files to their respective folders.
         Remove files from json and delete the json file if it is empty.
+
+        Args:
+            use_keywords (bool, optional): If True, use keyword dict instead
+                of json dict to move files.
         """
-        if os.path.exists(self.state.json_path):
-            json_d = load_json(self.state.json_path)
+        self.img_file_names = get_filtered_files(self.state.img_dir)
+        if use_keywords:
+            self.get_keyword_file_dict()
+            folder_names = set([key for (key, val) in self.keyword_dict.items() if val])
         else:
-            return
-        annotation_set = set(json_d["files"].values())
-        img_file_names = get_filtered_files(self.state.img_dir)
-        for annotation in annotation_set:
+            if os.path.exists(self.state.json_path):
+                json_d = load_json(self.state.json_path)
+            else:
+                return
+            folder_names = set(json_d["files"].values())
+        for folder_name in folder_names:
             n_files = 0
             remove_files = []
-            os.makedirs(os.path.join(self.state.img_dir, annotation), exist_ok=True)
-            filtered_files = [
-                file for (file, label) in json_d["files"].items() if annotation == label
-            ]
+            os.makedirs(os.path.join(self.state.img_dir, folder_name), exist_ok=True)
+            if use_keywords:
+                filtered_files = self.keyword_dict[folder_name]
+            else:
+                filtered_files = [
+                    file
+                    for (file, label) in json_d["files"].items()
+                    if folder_name == label
+                ]
             for file in filtered_files:
-                if file in img_file_names:
+                if file in self.img_file_names:
                     n_files += 1
                     remove_files.append(file)
                     img_file_path = os.path.join(self.state.img_dir, file)
-                    file_dest = os.path.join(self.state.img_dir, annotation, file)
+                    file_dest = os.path.join(self.state.img_dir, folder_name, file)
                     shutil.move(img_file_path, file_dest)
-            st.write(f"moving {n_files} images to {annotation}...")
+            st.write(f"moving {n_files} images to {folder_name}...")
             for file in remove_files:
-                self.state.annotations.pop(file, None)
-                json_d["files"].pop(file, None)
-        if len(json_d["files"]) > 0:
-            save_json(json_d, self.state.json_path)
-        else:
-            os.remove(self.state.json_path)
-        self.state.counter = 0
+                if not use_keywords:
+                    self.state.annotations.pop(file, None)
+                    json_d["files"].pop(file, None)
+        if not use_keywords:
+            if len(json_d["files"]) > 0:
+                save_json(json_d, self.state.json_path)
+            else:
+                os.remove(self.state.json_path)
+            self.state.counter = 0
 
     def get_imgs(self) -> List[str]:
         """Get a sorted list of image paths. Images
@@ -209,6 +245,12 @@ class Annotator:
         img_file_names = get_filtered_files(self.state.img_dir)
         if img_file_names:
             img_file_names.sort()
+        if self.state.split_keywords:
+            keyword_filtered = []
+            for keyword in self.state.split_keywords:
+                _, filtered = filter_by_keyword(img_file_names, keyword)
+                keyword_filtered.extend(filtered)
+            return list(set(keyword_filtered))
         return img_file_names
 
     def reset_imgs(self) -> None:
@@ -247,6 +289,37 @@ class Annotator:
             opt.strip() for opt in self.state.categories.split(",")
         ]
 
+    def reset_keywords(self):
+        """Reset split keywords list to an empty list.
+        """
+        self.state.split_keywords = []
+
+    def change_keywords(self):
+        """Change keywords if the user provides new keywords.
+        """
+        self.state.keywords = self.state._keywords
+        if self.state.keywords:
+            self.state.split_keywords = [
+                opt.strip() for opt in self.state.keywords.split(",")
+            ]
+        else:
+            self.state.split_keywords = []
+
+    def keyword_move_files(self):
+        """Move files based on keywords.
+        """
+        self.state._keywords = ""
+        if self.state.split_keywords:
+            self.make_folders_move_files(use_keywords=True)
+            self.state.split_keywords = []
+            self.reset_imgs()
+
+    def get_sep(self):
+        """Get separator if provided by user.
+        """
+        self.state.sep = self.state._sep
+        self.state._sep = " "
+
     def set_ui_values(self):
         """Set the UI element values and change any display values needed.
         """
@@ -256,13 +329,18 @@ class Annotator:
         self.info_placeholder.info(
             f"Annotated: {self.n_annotated}, Remaining: {self.remaining}"
         )
-        self.move_col, self.reset_col = self.move_clear_buttons_placeholder.columns(2)
+        (
+            self.move_col,
+            self.clear_col,
+            self.reset_col,
+        ) = self.move_clear_buttons_placeholder.columns([2, 3, 2])
         (
             self.clamp_col,
             self.prompt_col,
             self.meta_col,
         ) = self.checkbox_placeholder.columns(3)
         self.move_col.button("Move Files", on_click=self.make_folders_move_files)
+        self.clear_annotations = self.clear_col.button("Reset Annotations?")
         self.state.clamp_state = self.clamp_col.checkbox("Clamp Height", value=True)
         self.state.show_prompt = self.prompt_col.checkbox("Show Prompt", value=False)
         self.state.show_meta = self.meta_col.checkbox("Metadata", value=False)
@@ -290,13 +368,27 @@ class Annotator:
                 len(self.state.split_categories)
             )
             self.col1, self.col2 = st.columns(2)
-            self.clear_annotations = self.col1.button("Reset Annotations?")
+            self.keyword_filter = self.col1.checkbox("Keyword Filter", on_change=self.reset_keywords)
             self.add_hide_button = self.col2.checkbox("Hide Image Button")
+            if self.keyword_filter:
+                keycol1, keycol2 = st.columns([1, 8])
+                keycol1.text_input("sep", key="_sep", on_change=self.get_sep)
+                keycol2.text_input(
+                    "Keywords (comma separated)",
+                    key="_keywords",
+                    on_change=self.change_keywords,
+                )
+                self.key1, self.key2 = st.columns(2)
+                self.keyword_move = self.key1.checkbox("Keyword Move Button")
+                if self.keyword_move:
+                    st.warning(
+                        "Clicking this will move any files with matching keywords to folders in order of keyword!"
+                    )
+                    self.key2.button("Keyword MOVE", on_click=self.keyword_move_files)
         if self.clear_annotations:
             if self.state.files:
                 save_json({}, self.state.json_path)
             self.reset_imgs()
-
         if self.add_hide_button:
             self.reset_col.button("CLEAR", on_click=self.change_hide_state)
         if self.state.counter < len(self.state.files):
