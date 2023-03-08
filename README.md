@@ -20,13 +20,25 @@
 
 This tool is helpful to sort images. A good use-case is when generating images with Stable Diffusion, it is possible to batch generate a lot of images. You might want to sort them, and looking at them in a file explorer is difficult if you cannot see the whole image.
 
-## Example:
+## Annotation and File Sorting Using Category Buttons
+
+__Example:__
 
 You generate 50 images with a prompt like "a photo of a kitten wearing a top hat and a monocle".
 
 When looking at the resulting images you might want to organize them into categories like "keep", "delete", "fix", where the "fix" option could be so you can inpaint to fix any details. Maybe your kittens have funny paws?
 
 This app gives you a UI to go through images and organize them into different categories, where you can move them into folders for easy organization.
+
+## Bulk File Sorting Using Keyword Filters
+
+__Example:__
+
+You have a folder with images and you want to sort them based on keywords. Using the keyword filter and keyword move features, you can simply specify a comma separated list of keywords such as:
+
+> cyberpunk, landscape, fantasy
+
+And with one click, images with "cyberpunk" in the image name will be moved to a folder called "cyberpunk". The same will happen with "landscape" and "fantasy".
 
 # Installation
 
@@ -127,6 +139,9 @@ Annotating / moving images into labeled folders is fairly straightforward. When 
 
 You can change / add buttons on the fly, which will result in different folders being created when the `Move Files` button is pressed.
 
+### Reset Annotations?
+This will simply delete any annotations that have been stored and reset the count of annotated files in the UI.
+
 ### Show Prompt / Metadata Checkboxes
 If the images you are sorting have been created using Automatic1111's webui, metadata from the image generation is likely to be stored in the image. You can view this by clicking "Show Prompt" to see the image prompt, and "Metadata" to view metadata:
 <div align="center">
@@ -143,8 +158,43 @@ Clicking on the "Hide Image Button" checkbox will create a button at the top whi
     <p>Hiding the current image.</p>
 </div>
 
-### Reset Annotations?
-This will simply delete any annotations that have been stored and reset the count of annotated files in the UI.
+### Keyword Filter
+
+You can filter the images you are annotating using comma separated keywords by toggling the `Keyword Filter` checkbox under the expanded options section. Here you have two text boxes - "sep" and "Keywords (comma separated)".
+
+`sep` is the separator between words for your image files. The default is a space.
+
+`Keywords` will be the comma separated list of keywords to filter to.
+
+<div align="center">
+    <img src="images/keyword_filter.png"/>
+    <p>Keyword filter.</p>
+</div>
+
+In this example shown, only images that contain "cyberpunk", "robot", and "science fiction" will be used in the annotator.
+
+<div align="center">
+    <img src="images/keyword_sep.png"/>
+    <p>Keyword filter with different separator.</p>
+</div>
+
+In this example shown, `sep` = _ and the filtered keywords will filter to images that contain "fantasy_setting", and "surreal_landscape". This would be used if you have photos with names like:
+
+> image_of_a_surreal_landscape.png
+
+> town_village_fantasy_setting_dramatic_lighting.png
+
+### Keyword Move Button
+
+<div align="center">
+    <img src="images/keyword_move.png"/>
+    <p>Keyword filter with different separator.</p>
+</div>
+
+Here you can enable the `Keyword MOVE` button, which will move all images to their keyword folders instantly when pressed. In the example shown, all images that contain "magical" will be moved to a folder called "magical", and all images that contain "surreal" will be moved to a folder called "surreal".
+
+This is ordered so that any image that contain both "magical" and "surreal" will be moved to the first folder ("magical" in this case), and images that contain "surreal" but do not contain "magical" will be moved to the "surreal" folder.
+
 
 ### JSON file
 All of the annotation data is stored within the app when running, but as a backup a JSON file is created that temporarily stores the annotations. This was originally the way the annotations were stored and a separate script was called to move the files, but this can also be used as a backup in case the app is closed before you hit `Move Files`. Once any files are moved, they will be removed from the JSON file.
