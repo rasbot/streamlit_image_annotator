@@ -115,6 +115,8 @@ def filter_by_keyword(
             containing the keyword(s) and a list of file names that do
             contain the keyword(s).
     """
+    if not sep_:
+        sep_ = " "
     file_list_ = file_list.copy()
     filtered = []
     for file in file_list:

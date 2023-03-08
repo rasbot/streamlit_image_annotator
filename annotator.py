@@ -248,7 +248,7 @@ class Annotator:
         if self.state.split_keywords:
             keyword_filtered = []
             for keyword in self.state.split_keywords:
-                _, filtered = filter_by_keyword(img_file_names, keyword)
+                _, filtered = filter_by_keyword(img_file_names, keyword, sep_=self.state.sep)
                 keyword_filtered.extend(filtered)
             return list(set(keyword_filtered))
         return img_file_names
@@ -318,7 +318,7 @@ class Annotator:
         """Get separator if provided by user.
         """
         self.state.sep = self.state._sep
-        self.state._sep = " "
+        # self.state._sep = " "
 
     def set_ui_values(self):
         """Set the UI element values and change any display values needed.
