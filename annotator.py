@@ -100,6 +100,7 @@ class Annotator:
 
     def set_ui(self):
         """Set the order of the UI elements for the sidebar."""
+        st.set_page_config(layout="wide")
         st.sidebar.title("Image Annotator")
         # set up order of sidebar UI elements
         self.back_placeholder = st.sidebar.empty()
@@ -250,7 +251,9 @@ class Annotator:
             for keyword in self.state.split_keywords:
                 _, filtered = filter_by_keyword(img_file_names, keyword, sep_=self.state.sep)
                 keyword_filtered.extend(filtered)
-            return list(set(keyword_filtered))
+            keyword_filtered = list(set(keyword_filtered))
+            keyword_filtered.sort()
+            return keyword_filtered
         return img_file_names
 
     def reset_imgs(self) -> None:
