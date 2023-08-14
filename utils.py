@@ -1,3 +1,5 @@
+"""Helper functions for main scripts"""
+
 import json
 import os
 from typing import List, Dict, Tuple
@@ -11,7 +13,7 @@ assert (
     has_config
 ), "config.yml file has not been created. Please run `set_config.bat` to create config file."
 conf = OmegaConf.load("config.yml")
-FILTER_EXT_LIST = [filt.strip() for filt in conf.filter_files.split(",")]
+FILTER_EXT_LIST = ["." + filt.strip() for filt in conf.filter_files.split(",")]
 
 
 def concat_arr(arr: List[str]) -> List[str]:
@@ -156,7 +158,7 @@ def save_json(json_dict: dict, json_path: str) -> None:
         json_path (str): File path for json file.
     """
     json_object = json.dumps(json_dict, indent=4)
-    with open(json_path, "w") as outfile:
+    with open(json_path, "w", encoding="utf-8") as outfile:
         outfile.write(json_object)
 
 
@@ -170,7 +172,7 @@ def load_json(json_path: str) -> dict:
         dict: Dictionary of json data.
     """
     assert os.path.exists(json_path), "Json path invalid, file not found!"
-    with open(json_path, "r") as infile:
+    with open(json_path, "r", encoding="utf-8") as infile:
         json_dict = json.load(infile)
     return json_dict
 
@@ -184,7 +186,7 @@ def update_json(json_dict: dict, json_path: str) -> None:
         json_path (str): Path of the json file.
     """
     if os.path.exists(json_path):
-        with open(json_path, "r") as infile:
+        with open(json_path, "r", encoding="utf-8") as infile:
             data = json.load(infile)
     else:
         data = {}
@@ -207,7 +209,7 @@ def get_filtered_files(
     """
     try:
         files = os.listdir(file_dir)
-        return [file for file in files if file.rsplit(".", 1)[-1] in ext_list]
+        return [file for file in files if os.path.splitext(file)[-1] in ext_list]
     except:
         return None
 
