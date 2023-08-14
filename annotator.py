@@ -1,6 +1,8 @@
+"""Main script to run annotator logic."""
+
 import os
 import shutil
-from typing import Dict, List, Tuple
+from typing import Dict, List
 
 import streamlit as st
 from omegaconf import OmegaConf
@@ -28,6 +30,41 @@ class Annotator:
             config_path (str, optional): Path to config file. Defaults to "config.yml".
         """
         self.config_path = config_path
+        # This is just so pylint doesn't complain
+        self.image_dir = None
+        self.json_path = None
+        self.categories = None
+        self.img_height_clamp = 0
+        self.clamp_image = False
+        self.state = None
+        self.back_placeholder = None
+        self.info_placeholder = None
+        self.options_buttons_placeholder = None
+        self.move_clear_buttons_placeholder = None
+        self.checkbox_placeholder = None
+        self.move_placeholder = None
+        self.prompt_info = None
+        self.meta_info = None
+        self.expander_placeholder = None
+        self.keyword_dict = None
+        self.img_file_names = None
+        self.remaining = None
+        self.n_annotated = None
+        self.move_col = None
+        self.move_col = None
+        self.clear_col = None
+        self.reset_col = None
+        self.clamp_col = None
+        self.prompt_col = None
+        self.meta_col = None
+        self.clear_annotations = None
+        self.button_cols = None
+        self.keyword_filter = None
+        self.add_hide_button = None
+        self.key1 = None
+        self.key2 = None
+        self.keyword_move = None
+        self.file_path = None
 
     def get_config_data(self):
         """Load config data from the yml file. This will save the config file
@@ -246,7 +283,8 @@ class Annotator:
             self.state.counter = 0
 
     def filter_all_keywords(self) -> List[str]:
-        # TODO: I wrote this awhile ago, not sure if / where it is useful so check on that at some point!
+        # TODO: I wrote this awhile ago, not sure if /
+        # where it is useful so check on that at some point!
         file_list_ = self.img_file_names.copy()
         keyword_filtered = []
         for keyword in self.state.split_keywords:
@@ -282,9 +320,9 @@ class Annotator:
             img_file_names.sort()
         img_prompt_dict = {}
         for img in img_file_names:
-            d = get_metadata_dict(os.path.join(self.state.img_dir, img))
-            if "Prompt" in d:
-                img_prompt_dict[img] = d["Prompt"]
+            meta_dict = get_metadata_dict(os.path.join(self.state.img_dir, img))
+            if "Prompt" in meta_dict:
+                img_prompt_dict[img] = meta_dict["Prompt"]
             else:
                 img_prompt_dict[img] = ""
         if self.state.split_keywords:
@@ -450,7 +488,8 @@ class Annotator:
                 self.keyword_move = self.key1.checkbox("Keyword Move Button")
                 if self.keyword_move:
                     st.warning(
-                        "Clicking this will move any files with matching keywords to folders in order of keyword!"
+                        "Clicking this will move any files with matching keywords \
+                        to folders in order of keyword!"
                     )
                     self.key2.button("Keyword MOVE", on_click=self.keyword_move_files)
         if self.clear_annotations:
