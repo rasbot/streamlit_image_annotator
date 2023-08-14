@@ -6,18 +6,21 @@ import streamlit as st
 from omegaconf import OmegaConf
 
 from utils import (
+    filter_by_keyword,
     get_filtered_files,
+    get_metadata_dict,
+    get_metadata_str,
+    has_config,
     load_image,
     load_json,
     save_json,
     update_json,
-    get_metadata_str,
-    filter_by_keyword,
-    has_config,
 )
 
 
 class Annotator:
+    """Annotator class"""
+
     def __init__(self, config_path: str = "config.yml"):
         """Initialize the Annotator class.
 
@@ -174,11 +177,19 @@ class Annotator:
         """Create a dictionary with key = keyword, val = list of filtered file names
         that contain they keyword.
         """
+        # TODO: filter on prompt, not image name if possible
         file_list_ = self.img_file_names.copy()
         self.keyword_dict = {}
+        keywords_and = ""
         for keyword in self.state.split_keywords:
             if not self.state.sep:
                 self.state.sep = " "
+            if self.state.keyword_and_or:
+                if not keywords_and:
+                    keywords_and += keyword
+                else:
+                    keywords_and += f" {keyword}"
+
             file_list_, filtered_files = filter_by_keyword(
                 file_list_, keyword, self.state.sep
             )
@@ -234,6 +245,29 @@ class Annotator:
                 os.remove(self.state.json_path)
             self.state.counter = 0
 
+    def filter_all_keywords(self) -> List[str]:
+        # TODO: I wrote this awhile ago, not sure if / where it is useful so check on that at some point!
+        file_list_ = self.img_file_names.copy()
+        keyword_filtered = []
+        for keyword in self.state.split_keywords:
+            if self.state.keyword_and_or:
+                if not keyword_filtered:
+                    filter_files = file_list_
+                else:
+                    filter_files = keyword_filtered
+                _, filtered = filter_by_keyword(
+                    filter_files, keyword, sep_=self.state.sep
+                )
+                keyword_filtered = filtered
+            else:
+                _, filtered = filter_by_keyword(
+                    file_list_, keyword, sep_=self.state.sep
+                )
+                keyword_filtered.extend(filtered)
+        keyword_filtered = list(set(keyword_filtered))
+        keyword_filtered.sort()
+        return keyword_filtered
+
     def get_imgs(self) -> List[str]:
         """Get a sorted list of image paths. Images
         are filtered to png and jpg (specified in config.yml)
@@ -246,19 +280,41 @@ class Annotator:
         img_file_names = get_filtered_files(self.state.img_dir)
         if img_file_names:
             img_file_names.sort()
+        img_prompt_dict = {}
+        for img in img_file_names:
+            d = get_metadata_dict(os.path.join(self.state.img_dir, img))
+            if "Prompt" in d:
+                img_prompt_dict[img] = d["Prompt"]
+            else:
+                img_prompt_dict[img] = ""
         if self.state.split_keywords:
             keyword_filtered = []
             for keyword in self.state.split_keywords:
-                _, filtered = filter_by_keyword(img_file_names, keyword, sep_=self.state.sep)
-                keyword_filtered.extend(filtered)
+                if self.state.keyword_and_or:
+                    if not keyword_filtered:
+                        filter_files = img_file_names
+                    else:
+                        filter_files = keyword_filtered
+                    _, filtered = filter_by_keyword(
+                        filter_files, keyword, sep_=self.state.sep
+                    )
+                    # filtered_prompts = list(set(filtered_prompts))
+                    # filtered = [f for (f,p) in img_prompt_dict.items() if p in filtered_prompts]
+                    keyword_filtered = filtered
+                else:
+                    _, filtered = filter_by_keyword(
+                        img_file_names, keyword, sep_=self.state.sep
+                    )
+                    # filtered_prompts = list(set(filtered_prompts))
+                    # filtered = [f for (f,p) in img_prompt_dict.items() if p in filtered_prompts]
+                    keyword_filtered.extend(filtered)
             keyword_filtered = list(set(keyword_filtered))
             keyword_filtered.sort()
             return keyword_filtered
         return img_file_names
 
     def reset_imgs(self) -> None:
-        """Reset variables when a directory is changed.
-        """
+        """Reset variables when a directory is changed."""
         img_file_names = self.get_imgs()
         if img_file_names is None:
             return
@@ -274,8 +330,7 @@ class Annotator:
         )
 
     def change_dir(self):
-        """Change directory and reset images.
-        """
+        """Change directory and reset images."""
         if not os.path.isdir(self.state._img_dir):
             st.error(
                 f"{self.state._img_dir} is not a valid directory...Please enter another one."
@@ -285,21 +340,18 @@ class Annotator:
             self.reset_imgs()
 
     def update_categories(self):
-        """Update the categories variable.
-        """
+        """Update the categories variable."""
         self.state.categories = self.state._categories
         self.state.split_categories = [
             opt.strip() for opt in self.state.categories.split(",")
         ]
 
     def reset_keywords(self):
-        """Reset split keywords list to an empty list.
-        """
+        """Reset split keywords list to an empty list."""
         self.state.split_keywords = []
 
     def change_keywords(self):
-        """Change keywords if the user provides new keywords.
-        """
+        """Change keywords if the user provides new keywords."""
         self.state.keywords = self.state._keywords
         if self.state.keywords:
             self.state.split_keywords = [
@@ -309,8 +361,7 @@ class Annotator:
             self.state.split_keywords = []
 
     def keyword_move_files(self):
-        """Move files based on keywords.
-        """
+        """Move files based on keywords."""
         self.state._keywords = ""
         if self.state.split_keywords:
             self.make_folders_move_files(use_keywords=True)
@@ -318,14 +369,12 @@ class Annotator:
             self.reset_imgs()
 
     def get_sep(self):
-        """Get separator if provided by user.
-        """
+        """Get separator if provided by user."""
         self.state.sep = self.state._sep
         # self.state._sep = " "
 
     def set_ui_values(self):
-        """Set the UI element values and change any display values needed.
-        """
+        """Set the UI element values and change any display values needed."""
         self.n_annotated = len(self.state.annotations)
         self.remaining = len(self.state.files) - self.state.counter
         self.back_placeholder.button("BACK", on_click=self.change_img, args=(-1,))
@@ -370,9 +419,25 @@ class Annotator:
             self.button_cols = self.options_buttons_placeholder.columns(
                 len(self.state.split_categories)
             )
-            self.col1, self.col2 = st.columns(2)
-            self.keyword_filter = self.col1.checkbox("Keyword Filter", on_change=self.reset_keywords)
-            self.add_hide_button = self.col2.checkbox("Hide Image Button")
+            subcol1, subcol2, subcol3 = st.columns(3)
+            self.keyword_filter = subcol1.checkbox(
+                "Keyword Filter",
+                on_change=self.reset_keywords,
+                help="If checked, results will be filtered \
+                        to only ones that contain keywords provided.",
+            )
+            self.state.keyword_and_or = subcol2.checkbox(
+                "AND",
+                help="If checked, results must have \
+                        ALL comma separated phrases. If unchecked, \
+                        results can have ANY comma separated phrase.",
+            )
+            self.add_hide_button = subcol3.checkbox(
+                "Hide Image Button",
+                help="If checked, a button called 'CLEAR' will be added \
+                    next to the 'Reset Annotations?' button. When pressed, \
+                    images will not be displayed.",
+            )
             if self.keyword_filter:
                 keycol1, keycol2 = st.columns([1, 8])
                 keycol1.text_input("sep", key="_sep", on_change=self.get_sep)
@@ -427,8 +492,7 @@ class Annotator:
             self.options_buttons_placeholder.info("Everything is annotated.")
 
     def run(self):
-        """Method that keeps track of the order of methods called.
-        """
+        """Method that keeps track of the order of methods called."""
         self.get_config_data()
         self.set_state_dict()
         self.set_ui()
