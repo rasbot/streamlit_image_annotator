@@ -99,13 +99,13 @@ def get_metadata_str(image_path: str) -> Tuple[str, str]:
 
 
 def filter_by_keyword(
-    file_list: List[str], keyword: str, sep_=" "
+    str_list: List[str], keyword: str, sep_=" "
 ) -> Tuple[List[str], List[str]]:
-    """Filter a list of file names to ones that contain a keyword phrase.
+    """Filter a list of strings to ones that contain a keyword phrase.
     This can be multiple words.
 
     Args:
-        file_list (List[str]): List of file names to filter.
+        str_list (List[str]): List of strings to filter.
         keyword (str): Keyword(s) to filter file names to.
         sep_ (str, optional): Separator that will be used to split
             the file names. Defaults to " ".
@@ -117,11 +117,13 @@ def filter_by_keyword(
     """
     if not sep_:
         sep_ = " "
-    file_list_ = file_list.copy()
+    str_list_ = str_list.copy()
     filtered = []
-    for file in file_list:
+    for file in str_list:
         no_ext = file.rsplit(".", 1)[0]
-        for char in "',()!?:":
+        char_filter = "-_',()!?:"
+        char_filter = char_filter.replace(sep_, "")
+        for char in char_filter:
             no_ext = no_ext.replace(char, "")
         split_file = no_ext.split(sep_)
         if sep_ in keyword:
@@ -129,16 +131,21 @@ def filter_by_keyword(
         else:
             split_keyword = [keyword]
         n_key = len(split_keyword)
-        first_idxs = [idx for idx, val in enumerate(split_file) if val==split_keyword[0]]
+        first_idxs = [
+            idx for idx, val in enumerate(split_file) if val == split_keyword[0]
+        ]
         if first_idxs:
             for idx in first_idxs:
-                if split_file[idx:idx+n_key]==split_keyword and file not in filtered:
+                if (
+                    split_file[idx : idx + n_key] == split_keyword
+                    and file not in filtered
+                ):
                     filtered.append(file)
-                    file_list_.remove(file)
+                    str_list_.remove(file)
         elif keyword in split_file:
             filtered.append(file)
-            file_list_.remove(file)
-    return file_list_, filtered
+            str_list_.remove(file)
+    return str_list_, filtered
 
 
 def save_json(json_dict: dict, json_path: str) -> None:
