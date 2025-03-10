@@ -60,6 +60,9 @@ def get_metadata_dict(image_path: str) -> Dict[str, str]:
         return metadata
     metadata_str = "Prompt: " + metadata["parameters"]
     split_meta = metadata_str.split("\n")
+    if len(split_meta) > 2:
+        # list length should be = 2 so concat all elements before the last one
+        split_meta = ["".join(split_meta[:-1]), split_meta[-1]]
     sub_split = split_meta[-1].split(", ")
     split_meta = split_meta[:-1]
     split_meta.extend(sub_split)
