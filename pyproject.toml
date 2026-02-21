@@ -1,0 +1,30 @@
+[project]
+name = "streamlit-image-annotator"
+version = "0.1.0"
+description = "A web-based image sorting and annotation tool"
+requires-python = ">=3.9"
+dependencies = [
+    "streamlit",
+    "omegaconf",
+    "Pillow",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=7",
+    "ruff>=0.6",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["src"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py39"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["utils"]

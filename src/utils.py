@@ -38,7 +38,7 @@ def concat_arr(arr: list[str]) -> list[str]:
             result.append(row)
         else:
             current_string += row
-    if current_string:
+    if current_string and result:
         result[-1] += current_string
 
     return result
@@ -220,7 +220,9 @@ def get_filtered_files(
         return []
 
 
-def load_image(image_path: str, height: int = 896, is_clamped: bool = True) -> Image:
+def load_image(
+    image_path: str, height: int = 896, is_clamped: bool = True
+) -> Image.Image:
     """Load an image. If `is_clamped` is True, clamp the image height.
     This makes it so larger images can be shown in the browser.
     The `height` parameter will be used to clamp the height of the

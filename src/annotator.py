@@ -190,8 +190,8 @@ class Annotator:
         """Set annotation for the current file, change the image, and update the
         json file.
 
-        results_d will have a 'directory' key with a value containing the directory path
-        of the image folder, and a 'files' key with a dictionary of file_name/annotation pairs.
+        results_d will have a 'directory' key with a value containing the directory
+        path of the image folder, and a 'files' key with file_name/annotation pairs.
 
         Args:
             label (str): Annotation label to assign to img file.
@@ -209,16 +209,9 @@ class Annotator:
         # TODO: filter on prompt, not image name if possible
         file_list_ = self.img_file_names.copy()
         self.keyword_dict = {}
-        keywords_and = ""
         for keyword in self.state.split_keywords:
             if not self.state.sep:
                 self.state.sep = " "
-            if self.state.keyword_and_or:
-                if not keywords_and:
-                    keywords_and += keyword
-                else:
-                    keywords_and += f" {keyword}"
-
             file_list_, filtered_files = filter_by_keyword(
                 file_list_, keyword, self.state.sep
             )
@@ -311,8 +304,6 @@ class Annotator:
     def reset_imgs(self) -> None:
         """Reset variables when a directory is changed."""
         img_file_names = self.get_imgs()
-        if img_file_names is None:
-            return
         self.state.counter = 0
         self.state.annotations = {}
         self.state.files = img_file_names
@@ -328,7 +319,8 @@ class Annotator:
         """Change directory and reset images."""
         if not os.path.isdir(self.state._img_dir):
             st.error(
-                f"{self.state._img_dir} is not a valid directory...Please enter another one."
+                f"{self.state._img_dir} is not a valid directory..."
+                "Please enter another one."
             )
         else:
             self.state.img_dir = self.state._img_dir
@@ -366,7 +358,6 @@ class Annotator:
     def get_sep(self):
         """Get separator if provided by user."""
         self.state.sep = self.state._sep
-        # self.state._sep = " "
 
     def set_ui_values(self):
         """Set the UI element values and change any display values needed."""

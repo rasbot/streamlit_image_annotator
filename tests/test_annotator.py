@@ -1,0 +1,177 @@
+"""Tests for src/annotator.py — Annotator class methods."""
+
+from __future__ import annotations
+
+import sys
+from types import SimpleNamespace
+from unittest.mock import MagicMock, patch
+
+# ---------------------------------------------------------------------------
+# Patch streamlit and utils module-level side-effects before importing
+# ---------------------------------------------------------------------------
+
+_mock_st = MagicMock()
+_mock_conf = MagicMock()
+_mock_conf.filter_files = "png, jpg"
+
+sys.modules.setdefault("streamlit", _mock_st)
+
+# Patch os.path.isfile and OmegaConf.load so utils' module-level config check
+# doesn't raise, and streamlit is stubbed when annotator is imported.
+with (
+    patch("os.path.isfile", return_value=True),
+    patch("omegaconf.OmegaConf.load", return_value=_mock_conf),
+    patch.dict(sys.modules, {"streamlit": _mock_st}),
+):
+    import annotator as ann_mod
+
+Annotator = ann_mod.Annotator
+
+
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
+
+
+def _make_annotator_with_state(**state_kwargs):
+    """Create an Annotator and attach a SimpleNamespace as its state."""
+    defaults = dict(
+        counter=0,
+        hide_state=0,
+        categories="keep, delete, fix, other",
+        split_categories=["keep", "delete", "fix", "other"],
+        keywords="",
+        _keywords="",
+        split_keywords=[],
+        sep=" ",
+        files=["a.png", "b.png", "c.png"],
+        current_file="a.png",
+        annotations={},
+        img_dir="/some/dir",
+        json_path="/some/dir/annotations.json",
+        clamp_state=True,
+        is_expanded=False,
+        show_meta=False,
+        show_prompt=False,
+        move=False,
+        keyword_and_or=False,
+    )
+    defaults.update(state_kwargs)
+    a = Annotator()
+    a.state = SimpleNamespace(**defaults)
+    return a
+
+
+# ---------------------------------------------------------------------------
+# __init__
+# ---------------------------------------------------------------------------
+
+
+def test_init_defaults():
+    a = Annotator()
+    assert a.config_path == "config.yml"
+    assert a.image_dir is None
+    assert a.json_path is None
+    assert a.categories is None
+    assert a.img_height_clamp == 0
+    assert a.clamp_image is False
+    assert a.state is None
+
+
+# ---------------------------------------------------------------------------
+# get_config_data
+# ---------------------------------------------------------------------------
+
+
+def test_get_config_data_bad_extension():
+    import pytest
+
+    a = Annotator(config_path="config.json")
+    with pytest.raises(ValueError, match="yml or yaml"):
+        a.get_config_data()
+
+
+def test_get_config_data_loads_values(tmp_config):
+    """get_config_data should populate image_dir, json_path, categories, etc."""
+    a = Annotator(config_path=str(tmp_config))
+    # Patch OmegaConf.save so it doesn't write back
+    with patch("annotator.OmegaConf.save"):
+        a.get_config_data()
+    assert a.categories == "keep, delete, fix, other"
+    assert a.img_height_clamp == 896
+    assert a.clamp_image is True
+
+
+# ---------------------------------------------------------------------------
+# change_img
+# ---------------------------------------------------------------------------
+
+
+def test_change_img_forward():
+    a = _make_annotator_with_state(counter=0, files=["a.png", "b.png", "c.png"])
+    a.change_img(1)
+    assert a.state.counter == 1
+    assert a.state.current_file == "b.png"
+
+
+def test_change_img_lower_bound():
+    """Counter should not go below 0."""
+    a = _make_annotator_with_state(counter=0, files=["a.png", "b.png"])
+    a.change_img(-1)
+    assert a.state.counter == 0
+
+
+# ---------------------------------------------------------------------------
+# change_hide_state
+# ---------------------------------------------------------------------------
+
+
+def test_change_hide_state_toggle():
+    a = _make_annotator_with_state(hide_state=0)
+    a.change_hide_state()
+    assert a.state.hide_state == 1
+    a.change_hide_state()
+    assert a.state.hide_state == 0
+
+
+# ---------------------------------------------------------------------------
+# update_categories
+# ---------------------------------------------------------------------------
+
+
+def test_update_categories():
+    a = _make_annotator_with_state(categories="keep, delete")
+    a.state._categories = "good, bad, ugly"
+    a.update_categories()
+    assert a.state.categories == "good, bad, ugly"
+    assert a.state.split_categories == ["good", "bad", "ugly"]
+
+
+# ---------------------------------------------------------------------------
+# change_keywords
+# ---------------------------------------------------------------------------
+
+
+def test_change_keywords_non_empty():
+    a = _make_annotator_with_state(keywords="")
+    a.state._keywords = "cat, dog"
+    a.change_keywords()
+    assert a.state.split_keywords == ["cat", "dog"]
+
+
+def test_change_keywords_empty():
+    a = _make_annotator_with_state(keywords="cat")
+    a.state._keywords = ""
+    a.change_keywords()
+    assert a.state.split_keywords == []
+
+
+# ---------------------------------------------------------------------------
+# reset_keywords
+# ---------------------------------------------------------------------------
+
+
+def test_reset_keywords():
+    a = _make_annotator_with_state(split_keywords=["cat", "dog"])
+    a.reset_keywords()
+    assert a.state.split_keywords == []

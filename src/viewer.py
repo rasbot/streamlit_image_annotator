@@ -203,7 +203,6 @@ def change_height_clamp():
 
 def change_keywords():
     """Change keywords if the user provides new keywords."""
-    st.write("changing keywords...")
     state.keywords = state._keywords
     if state.keywords:
         state.split_keywords = [opt.strip() for opt in state.keywords.split(",")]
@@ -266,11 +265,11 @@ st.sidebar.number_input(
     key="_height_clamp",
     on_change=change_height_clamp,
 )
-if state.counter >= 0 and not state.is_slideshow:
+if state.counter >= 0 and state.current_file and not state.is_slideshow:
     show_image()
 # TODO: height clamp if removed should stay that way
 # slide show code
-if state.is_slideshow and state.counter < len(state.files):
+if state.is_slideshow and state.counter < len(state.files) and state.current_file:
     show_image()
     time.sleep(state.sleep_time)
     if state.counter == len(state.files) - 1 and state.continuous:

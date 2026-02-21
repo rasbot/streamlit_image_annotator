@@ -1,11 +1,11 @@
 @echo off
 set REPO=https://github.com/rasbot/streamlit_image_annotator
-set APP=annotator.py
+set APP=src/annotator.py
 
 echo Pulling in latest changes from %REPO%...
 git pull %REPO%
 pause
 
 echo Launching streamlit app...
-streamlit run %APP%
+uv run streamlit run %APP%
 pause
