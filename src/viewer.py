@@ -266,7 +266,7 @@ st.sidebar.number_input(
     key="_height_clamp",
     on_change=change_height_clamp,
 )
-if state.counter >= 0 and not state.is_slideshow:
+if state.counter >= 0 and state.current_file and not state.is_slideshow:
     show_image()
 # TODO: height clamp if removed should stay that way
 # slide show code
