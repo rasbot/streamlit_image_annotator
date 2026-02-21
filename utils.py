@@ -1,31 +1,32 @@
 """Helper functions for main scripts"""
 
+from __future__ import annotations
+
 import json
 import os
-from typing import List, Dict, Tuple
+from pathlib import Path
 
 from omegaconf import OmegaConf
 from PIL import Image
 
-
-has_config = os.path.isfile("config.yml")
-assert (
-    has_config
-), "config.yml file has not been created. Please run `set_config.bat` to create config file."
+if not os.path.isfile("config.yml"):
+    raise FileNotFoundError(
+        "config.yml not found. Please run `set_config.bat` to create it."
+    )
 conf = OmegaConf.load("config.yml")
 FILTER_EXT_LIST = ["." + filt.strip() for filt in conf.filter_files.split(",")]
 
 
-def concat_arr(arr: List[str]) -> List[str]:
+def concat_arr(arr: list[str]) -> list[str]:
     """Concat elements in a list. For an element with
     a colon, concat all elements after that do not have a
     colon. This is used for getting the meta_dict.
 
     Args:
-        arr (List[str]): List of strings for metadata.
+        arr (list[str]): List of strings for metadata.
 
     Returns:
-        List[str]: Concatenated list of strings for metadata.
+        list[str]: Concatenated list of strings for metadata.
     """
     result = []
     current_string = ""
@@ -43,7 +44,7 @@ def concat_arr(arr: List[str]) -> List[str]:
     return result
 
 
-def get_metadata_dict(image_path: str) -> Dict[str, str]:
+def get_metadata_dict(image_path: str) -> dict[str, str]:
     """Get a dictionary of metadata from an image.
     This will only apply to images generated with Stable
     Diffusion using Automatic1111's webui repo.
@@ -52,7 +53,7 @@ def get_metadata_dict(image_path: str) -> Dict[str, str]:
         image_path (str): Path to image file.
 
     Returns:
-        Dict[str, str]: Dict with metadata info.
+        dict[str, str]: Dict with metadata info.
     """
     with Image.open(image_path) as img_file:
         metadata = img_file.info
@@ -69,12 +70,13 @@ def get_metadata_dict(image_path: str) -> Dict[str, str]:
     split_meta = concat_arr(split_meta)
     meta_d = {}
     for row in split_meta:
-        key, val = row.rsplit(": ", 1)
-        meta_d[key] = val
+        parts = row.rsplit(": ", 1)
+        if len(parts) == 2:
+            meta_d[parts[0]] = parts[1]
     return meta_d
 
 
-def get_metadata_str(image_path: str) -> Tuple[str, str]:
+def get_metadata_str(image_path: str) -> tuple[str, str]:
     """Get a metadata dict from an image path and
     create a string with markdown code to display in the
     main app.
@@ -83,10 +85,10 @@ def get_metadata_str(image_path: str) -> Tuple[str, str]:
         image_path (str): Path to image file.
 
     Returns:
-        Tuple[str, str]: String of prompt data and string
+        tuple[str, str]: String of prompt data and string
             of metadata.
     """
-    if image_path[-3:] != "png":
+    if Path(image_path).suffix.lower() != ".png":
         return "", ""
     meta_dict = get_metadata_dict(image_path)
     prompts = ""
@@ -104,19 +106,19 @@ def get_metadata_str(image_path: str) -> Tuple[str, str]:
 
 
 def filter_by_keyword(
-    str_list: List[str], keyword: str, sep_=" "
-) -> Tuple[List[str], List[str]]:
+    str_list: list[str], keyword: str, sep_=" "
+) -> tuple[list[str], list[str]]:
     """Filter a list of strings to ones that contain a keyword phrase.
     This can be multiple words.
 
     Args:
-        str_list (List[str]): List of strings to filter.
+        str_list (list[str]): List of strings to filter.
         keyword (str): Keyword(s) to filter file names to.
         sep_ (str, optional): Separator that will be used to split
             the file names. Defaults to " ".
 
     Returns:
-        Tuple[List[str], List[str]]: List of filtered file names not
+        tuple[list[str], list[str]]: List of filtered file names not
             containing the keyword(s) and a list of file names that do
             contain the keyword(s).
     """
@@ -174,7 +176,8 @@ def load_json(json_path: str) -> dict:
     Returns:
         dict: Dictionary of json data.
     """
-    assert os.path.exists(json_path), "Json path invalid, file not found!"
+    if not os.path.exists(json_path):
+        raise FileNotFoundError(f"JSON file not found: {json_path}")
     with open(json_path, "r", encoding="utf-8") as infile:
         json_dict = json.load(infile)
     return json_dict
@@ -198,23 +201,23 @@ def update_json(json_dict: dict, json_path: str) -> None:
 
 
 def get_filtered_files(
-    file_dir: str, ext_list: List[str] = FILTER_EXT_LIST
-) -> List[str]:
+    file_dir: str, ext_list: list[str] = FILTER_EXT_LIST
+) -> list[str]:
     """Get files in directory and return a list of files that
     have file extensions provided in `ext_list`.
 
     Args:
         file_dir (str): File directory with files to filter.
-        ext_list (List[str], optional): List of valid file extensions.
+        ext_list (list[str], optional): List of valid file extensions.
 
     Returns:
-        List[str]: Filtered list of files with valid extensions.
+        list[str]: Filtered list of files with valid extensions.
     """
     try:
         files = os.listdir(file_dir)
         return [file for file in files if os.path.splitext(file)[-1] in ext_list]
-    except:
-        return None
+    except OSError:
+        return []
 
 
 def load_image(image_path: str, height: int = 896, is_clamped: bool = True) -> Image:

@@ -1,17 +1,31 @@
+"""Streamlit image viewer with slideshow and shuffle support."""
+
 import os
 import random
 import time
 
 import streamlit as st
+from omegaconf import OmegaConf
 
 from utils import filter_by_keyword, get_filtered_files, load_image
 
-IMAGE_DIR = "E:\\gal\\stable-diffusion-webui\\outputs\\test"
+
+def _get_default_dir() -> str:
+    """Read default image directory from config.yml, falling back to cwd."""
+    if os.path.isfile("config.yml"):
+        conf = OmegaConf.load("config.yml")
+        default_dir = str(conf.default_directory) if conf.default_directory else ""
+        if default_dir and os.path.isdir(default_dir):
+            return default_dir
+    return os.getcwd()
+
+
+DEFAULT_DIR = _get_default_dir()
 height_clamp = 785
 
 state = st.session_state
 if "img_dir" not in state:
-    state.img_dir = IMAGE_DIR
+    state.img_dir = DEFAULT_DIR
 if "img_file_names" not in state:
     state.img_file_names = []
 if "filtered_words" not in state:
@@ -21,7 +35,7 @@ if "sleep_time" not in state:
 if "counter" not in state:
     state.counter = 0
 if "files" not in state:
-    state.files = [i for i in os.listdir(state.img_dir) if i[-3:] == "png"]
+    state.files = []
 if "current_file" not in state:
     state.current_file = None
 if "show_file_name" not in state:
@@ -133,7 +147,7 @@ def show_image():
     else:
         state.is_clamped = False
     image = load_image(file_path, state.height_clamp, state.is_clamped)
-    img_container.image(image, use_column_width="never")
+    img_container.image(image, use_container_width=False)
     if state.show_file_name:
         file_name_placeholder.info(state.current_file)
 
@@ -226,13 +240,13 @@ scol1, scol2, scol3 = st.sidebar.columns(3)
 state.show_file_name = scol1.checkbox("show filename")
 state.is_slideshow = scol2.checkbox("slide show", value=False)
 if state.is_slideshow:
-    state.continuous = scol3.checkbox("continous", value=False)
+    state.continuous = scol3.checkbox("continuous", value=False)
     state.sleep_time = st.sidebar.number_input("view time", value=2)
 #     shuffle_files()
 st.sidebar.markdown("---")
 st.sidebar.text_input(
     "full directory path to image files",
-    value=IMAGE_DIR,
+    value=DEFAULT_DIR,
     key="_img_dir",
     on_change=change_dir,
 )
@@ -256,13 +270,12 @@ if state.counter >= 0 and not state.is_slideshow:
     show_image()
 # TODO: height clamp if removed should stay that way
 # slide show code
-if state.is_slideshow:
-    # st.write("slide show time")
-    while state.counter < len(state.files):
-        show_image()
-        time.sleep(state.sleep_time)
-        if state.counter == len(state.files) - 1 and state.continuous:
-            state.counter = 0
-        else:
-            state.counter += 1
-        set_current_file()
+if state.is_slideshow and state.counter < len(state.files):
+    show_image()
+    time.sleep(state.sleep_time)
+    if state.counter == len(state.files) - 1 and state.continuous:
+        state.counter = 0
+    else:
+        state.counter += 1
+    set_current_file()
+    st.rerun()
