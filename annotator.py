@@ -1,8 +1,9 @@
 """Main script to run annotator logic."""
 
+from __future__ import annotations
+
 import os
 import shutil
-from typing import Dict, List
 
 import streamlit as st
 from omegaconf import OmegaConf
@@ -10,9 +11,7 @@ from omegaconf import OmegaConf
 from utils import (
     filter_by_keyword,
     get_filtered_files,
-    get_metadata_dict,
     get_metadata_str,
-    has_config,
     load_image,
     load_json,
     save_json,
@@ -51,7 +50,6 @@ class Annotator:
         self.remaining = None
         self.n_annotated = None
         self.move_col = None
-        self.move_col = None
         self.clear_col = None
         self.reset_col = None
         self.clamp_col = None
@@ -72,14 +70,8 @@ class Annotator:
         These are where `update_config` is set to true.
         """
         update_config = False
-        assert self.config_path.rsplit(".", 1)[-1] in (
-            "yml",
-            "yaml",
-        ), "Config file must be a yml or yaml file."
-        assert (
-            has_config
-        ), "config.yml file has not been created. Please run `set_config.bat` \
-            to create config file."
+        if self.config_path.rsplit(".", 1)[-1] not in ("yml", "yaml"):
+            raise ValueError("Config file must be a yml or yaml file.")
         conf = OmegaConf.load(self.config_path)
         if not conf.default_directory or not os.path.isdir(conf.default_directory):
             update_config = True
@@ -193,7 +185,7 @@ class Annotator:
         self.state.hide_state = 1 - self.state.hide_state
 
     def annotate(
-        self, label: str, results_d: Dict[str, Dict[str, str]], json_path: str
+        self, label: str, results_d: dict[str, dict[str, str]], json_path: str
     ) -> None:
         """Set annotation for the current file, change the image, and update the
         json file.
@@ -203,7 +195,7 @@ class Annotator:
 
         Args:
             label (str): Annotation label to assign to img file.
-            results_d (Dict[str, Dict[str, str]): Dictionary of annotations.
+            results_d (dict[str, dict[str, str]]): Dictionary of annotations.
             json_path (str): Path to json file.
         """
         self.state.annotations[self.state.current_file] = label
@@ -282,49 +274,18 @@ class Annotator:
                 os.remove(self.state.json_path)
             self.state.counter = 0
 
-    def filter_all_keywords(self) -> List[str]:
-        # TODO: I wrote this awhile ago, not sure if /
-        # where it is useful so check on that at some point!
-        file_list_ = self.img_file_names.copy()
-        keyword_filtered = []
-        for keyword in self.state.split_keywords:
-            if self.state.keyword_and_or:
-                if not keyword_filtered:
-                    filter_files = file_list_
-                else:
-                    filter_files = keyword_filtered
-                _, filtered = filter_by_keyword(
-                    filter_files, keyword, sep_=self.state.sep
-                )
-                keyword_filtered = filtered
-            else:
-                _, filtered = filter_by_keyword(
-                    file_list_, keyword, sep_=self.state.sep
-                )
-                keyword_filtered.extend(filtered)
-        keyword_filtered = list(set(keyword_filtered))
-        keyword_filtered.sort()
-        return keyword_filtered
-
-    def get_imgs(self) -> List[str]:
+    def get_imgs(self) -> list[str]:
         """Get a sorted list of image paths. Images
         are filtered to png and jpg (specified in config.yml)
         and sorted. If the image directory is not a
-        valid directory, return None.
+        valid directory, return an empty list.
 
         Returns:
-            List[str]: List of sorted image paths.
+            list[str]: List of sorted image paths.
         """
         img_file_names = get_filtered_files(self.state.img_dir)
         if img_file_names:
             img_file_names.sort()
-        img_prompt_dict = {}
-        for img in img_file_names:
-            meta_dict = get_metadata_dict(os.path.join(self.state.img_dir, img))
-            if "Prompt" in meta_dict:
-                img_prompt_dict[img] = meta_dict["Prompt"]
-            else:
-                img_prompt_dict[img] = ""
         if self.state.split_keywords:
             keyword_filtered = []
             for keyword in self.state.split_keywords:
@@ -336,15 +297,11 @@ class Annotator:
                     _, filtered = filter_by_keyword(
                         filter_files, keyword, sep_=self.state.sep
                     )
-                    # filtered_prompts = list(set(filtered_prompts))
-                    # filtered = [f for (f,p) in img_prompt_dict.items() if p in filtered_prompts]
                     keyword_filtered = filtered
                 else:
                     _, filtered = filter_by_keyword(
                         img_file_names, keyword, sep_=self.state.sep
                     )
-                    # filtered_prompts = list(set(filtered_prompts))
-                    # filtered = [f for (f,p) in img_prompt_dict.items() if p in filtered_prompts]
                     keyword_filtered.extend(filtered)
             keyword_filtered = list(set(keyword_filtered))
             keyword_filtered.sort()
@@ -511,7 +468,7 @@ class Annotator:
                 image = load_image(
                     self.file_path, self.img_height_clamp, self.state.clamp_state
                 )
-                st.image(image, use_column_width="never")
+                st.image(image, use_container_width=False)
                 st.write(self.state.current_file)
                 json_dict = {
                     "directory": self.state.img_dir,
