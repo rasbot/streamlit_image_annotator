@@ -209,16 +209,9 @@ class Annotator:
         # TODO: filter on prompt, not image name if possible
         file_list_ = self.img_file_names.copy()
         self.keyword_dict = {}
-        keywords_and = ""
         for keyword in self.state.split_keywords:
             if not self.state.sep:
                 self.state.sep = " "
-            if self.state.keyword_and_or:
-                if not keywords_and:
-                    keywords_and += keyword
-                else:
-                    keywords_and += f" {keyword}"
-
             file_list_, filtered_files = filter_by_keyword(
                 file_list_, keyword, self.state.sep
             )
@@ -311,8 +304,6 @@ class Annotator:
     def reset_imgs(self) -> None:
         """Reset variables when a directory is changed."""
         img_file_names = self.get_imgs()
-        if img_file_names is None:
-            return
         self.state.counter = 0
         self.state.annotations = {}
         self.state.files = img_file_names
@@ -367,7 +358,6 @@ class Annotator:
     def get_sep(self):
         """Get separator if provided by user."""
         self.state.sep = self.state._sep
-        # self.state._sep = " "
 
     def set_ui_values(self):
         """Set the UI element values and change any display values needed."""
