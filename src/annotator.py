@@ -190,8 +190,8 @@ class Annotator:
         """Set annotation for the current file, change the image, and update the
         json file.
 
-        results_d will have a 'directory' key with a value containing the directory path
-        of the image folder, and a 'files' key with a dictionary of file_name/annotation pairs.
+        results_d will have a 'directory' key with a value containing the directory
+        path of the image folder, and a 'files' key with file_name/annotation pairs.
 
         Args:
             label (str): Annotation label to assign to img file.
@@ -328,7 +328,8 @@ class Annotator:
         """Change directory and reset images."""
         if not os.path.isdir(self.state._img_dir):
             st.error(
-                f"{self.state._img_dir} is not a valid directory...Please enter another one."
+                f"{self.state._img_dir} is not a valid directory..."
+                "Please enter another one."
             )
         else:
             self.state.img_dir = self.state._img_dir

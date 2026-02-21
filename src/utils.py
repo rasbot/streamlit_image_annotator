@@ -38,7 +38,7 @@ def concat_arr(arr: list[str]) -> list[str]:
             result.append(row)
         else:
             current_string += row
-    if current_string:
+    if current_string and result:
         result[-1] += current_string
 
     return result
