@@ -4,6 +4,8 @@ from __future__ import annotations
 
 import os
 import shutil
+from pathlib import Path
+from typing import Any
 
 import streamlit as st
 from omegaconf import OmegaConf
@@ -18,9 +20,17 @@ from utils import (
     update_json,
 )
 
+__all__ = ["Annotator"]
+
 
 class Annotator:
-    """Annotator class"""
+    """Orchestrates the Streamlit image annotation UI.
+
+    Loads configuration from a YAML file, manages Streamlit session state,
+    renders sidebar and main-area widgets, handles user interactions
+    (annotation, directory changes, keyword filtering, file moves), and
+    coordinates annotation persistence to JSON.
+    """
 
     def __init__(self, config_path: str = "config.yml"):
         """Initialize the Annotator class.
@@ -29,48 +39,47 @@ class Annotator:
             config_path (str, optional): Path to config file. Defaults to "config.yml".
         """
         self.config_path = config_path
-        # This is just so pylint doesn't complain
-        self.image_dir = None
-        self.json_path = None
-        self.categories = None
-        self.img_height_clamp = 0
-        self.clamp_image = False
-        self.state = None
-        self.back_placeholder = None
-        self.info_placeholder = None
-        self.options_buttons_placeholder = None
-        self.move_clear_buttons_placeholder = None
-        self.checkbox_placeholder = None
-        self.move_placeholder = None
-        self.prompt_info = None
-        self.meta_info = None
-        self.expander_placeholder = None
-        self.keyword_dict = None
-        self.img_file_names = None
-        self.remaining = None
-        self.n_annotated = None
-        self.move_col = None
-        self.clear_col = None
-        self.reset_col = None
-        self.clamp_col = None
-        self.prompt_col = None
-        self.meta_col = None
-        self.clear_annotations = None
-        self.button_cols = None
-        self.keyword_filter = None
-        self.add_hide_button = None
-        self.key1 = None
-        self.key2 = None
-        self.keyword_move = None
-        self.file_path = None
+        self.image_dir: str | None = None
+        self.json_path: str | None = None
+        self.categories: str | None = None
+        self.img_height_clamp: int = 0
+        self.clamp_image: bool = False
+        self.state: Any = None
+        self.back_placeholder: Any = None
+        self.info_placeholder: Any = None
+        self.options_buttons_placeholder: Any = None
+        self.move_clear_buttons_placeholder: Any = None
+        self.checkbox_placeholder: Any = None
+        self.move_placeholder: Any = None
+        self.prompt_info: Any = None
+        self.meta_info: Any = None
+        self.expander_placeholder: Any = None
+        self.keyword_dict: dict[str, list[str]] | None = None
+        self.img_file_names: list[str] | None = None
+        self.remaining: int | None = None
+        self.n_annotated: int | None = None
+        self.move_col: Any = None
+        self.clear_col: Any = None
+        self.reset_col: Any = None
+        self.clamp_col: Any = None
+        self.prompt_col: Any = None
+        self.meta_col: Any = None
+        self.clear_annotations: bool | None = None
+        self.button_cols: list[Any] | None = None
+        self.keyword_filter: bool | None = None
+        self.add_hide_button: bool | None = None
+        self.key1: Any = None
+        self.key2: Any = None
+        self.keyword_move: bool | None = None
+        self.file_path: str | None = None
 
-    def get_config_data(self):
+    def get_config_data(self) -> None:
         """Load config data from the yml file. This will save the config file
         with defaults based on the working directory if they are blank.
         These are where `update_config` is set to true.
         """
         update_config = False
-        if self.config_path.rsplit(".", 1)[-1] not in ("yml", "yaml"):
+        if Path(self.config_path).suffix not in (".yml", ".yaml"):
             raise ValueError("Config file must be a yml or yaml file.")
         conf = OmegaConf.load(self.config_path)
         if not conf.default_directory or not os.path.isdir(conf.default_directory):
@@ -90,7 +99,7 @@ class Annotator:
         self.img_height_clamp = int(conf.image_height_clamp)
         self.clamp_image = conf.clamp_image
 
-    def set_state_dict(self):
+    def set_state_dict(self) -> None:
         """Set the state dictionary by adding key
         value pairs that will be used in the app.
         Some default to config variables, others default to empty
@@ -127,10 +136,12 @@ class Annotator:
             self.state.keywords = ""
             self.state.sep = " "
             self.state.split_keywords = []
+        if "keyword_and_or" not in self.state:
+            self.state.keyword_and_or = False
         if "move" not in self.state:
             self.state.move = False
 
-    def set_ui(self):
+    def set_ui(self) -> None:
         """Set the order of the UI elements for the sidebar."""
         st.set_page_config(layout="wide")
         st.sidebar.title("Image Annotator")
@@ -147,7 +158,7 @@ class Annotator:
         self.meta_info = st.sidebar.empty()
         self.expander_placeholder = st.sidebar.empty()
 
-    def set_dir(self):
+    def set_dir(self) -> None:
         """Set the image directory and get image files if any exist.
         Also sets the current file in the state dict."""
         if not os.path.isdir(self.state.img_dir):
@@ -159,7 +170,7 @@ class Annotator:
         else:
             st.write("No image files in folder. Nothing to annotate.")
 
-    def set_current_file(self):
+    def set_current_file(self) -> None:
         """Set the current file to the index of the
         state.counter.
         """
@@ -178,35 +189,34 @@ class Annotator:
             self.state.counter = 0
         self.set_current_file()
 
-    def change_hide_state(self):
+    def change_hide_state(self) -> None:
         """Flips the state of state.hide_state. If 0 -> 1,
         if 1 -> 0.
         """
         self.state.hide_state = 1 - self.state.hide_state
 
-    def annotate(
-        self, label: str, results_d: dict[str, dict[str, str]], json_path: str
-    ) -> None:
+    def annotate(self, label: str, results_d: dict[str, Any], json_path: str) -> None:
         """Set annotation for the current file, change the image, and update the
         json file.
 
-        results_d will have a 'directory' key with a value containing the directory
-        path of the image folder, and a 'files' key with file_name/annotation pairs.
+        ``results_d`` has a ``"directory"`` key (str) and a ``"files"`` key
+        (dict mapping filename to annotation label).
 
         Args:
             label (str): Annotation label to assign to img file.
-            results_d (dict[str, dict[str, str]]): Dictionary of annotations.
+            results_d (dict[str, Any]): Dictionary of annotations.
             json_path (str): Path to json file.
         """
         self.state.annotations[self.state.current_file] = label
         self.change_img(1)
         update_json(results_d, json_path)
 
-    def get_keyword_file_dict(self):
+    def get_keyword_file_dict(self) -> None:
         """Create a dictionary with key = keyword, val = list of filtered file names
-        that contain they keyword.
+        that contain the keyword.
+
+        Note: Filtering is performed on image filenames only, not prompt content.
         """
-        # TODO: filter on prompt, not image name if possible
         file_list_ = self.img_file_names.copy()
         self.keyword_dict = {}
         for keyword in self.state.split_keywords:
@@ -229,7 +239,7 @@ class Annotator:
         self.img_file_names = get_filtered_files(self.state.img_dir)
         if use_keywords:
             self.get_keyword_file_dict()
-            folder_names = set([key for (key, val) in self.keyword_dict.items() if val])
+            folder_names = {key for key, val in self.keyword_dict.items() if val}
         else:
             if os.path.exists(self.state.json_path):
                 json_d = load_json(self.state.json_path)
@@ -255,7 +265,7 @@ class Annotator:
                     img_file_path = os.path.join(self.state.img_dir, file)
                     file_dest = os.path.join(self.state.img_dir, folder_name, file)
                     shutil.move(img_file_path, file_dest)
-            st.write(f"moving {n_files} images to {folder_name}...")
+            st.info(f"moving {n_files} images to {folder_name}...")
             for file in remove_files:
                 if not use_keywords:
                     self.state.annotations.pop(file, None)
@@ -315,39 +325,37 @@ class Annotator:
             f"Annotated: {self.n_annotated}, Remaining: {self.remaining}"
         )
 
-    def change_dir(self):
+    def change_dir(self) -> None:
         """Change directory and reset images."""
-        if not os.path.isdir(self.state._img_dir):
-            st.error(
-                f"{self.state._img_dir} is not a valid directory..."
-                "Please enter another one."
-            )
+        new_dir = getattr(self.state, "_img_dir", None)
+        if not new_dir or not os.path.isdir(new_dir):
+            st.error(f"{new_dir!r} is not a valid directory. Please enter another one.")
         else:
-            self.state.img_dir = self.state._img_dir
+            self.state.img_dir = new_dir
             self.reset_imgs()
 
-    def update_categories(self):
+    def update_categories(self) -> None:
         """Update the categories variable."""
-        self.state.categories = self.state._categories
-        self.state.split_categories = [
-            opt.strip() for opt in self.state.categories.split(",")
-        ]
+        new_categories = getattr(self.state, "_categories", None)
+        if not new_categories:
+            return
+        self.state.categories = new_categories
+        self.state.split_categories = [opt.strip() for opt in new_categories.split(",")]
 
-    def reset_keywords(self):
+    def reset_keywords(self) -> None:
         """Reset split keywords list to an empty list."""
         self.state.split_keywords = []
 
-    def change_keywords(self):
+    def change_keywords(self) -> None:
         """Change keywords if the user provides new keywords."""
-        self.state.keywords = self.state._keywords
-        if self.state.keywords:
-            self.state.split_keywords = [
-                opt.strip() for opt in self.state.keywords.split(",")
-            ]
+        new_keywords = getattr(self.state, "_keywords", None)
+        self.state.keywords = new_keywords or ""
+        if new_keywords:
+            self.state.split_keywords = [opt.strip() for opt in new_keywords.split(",")]
         else:
             self.state.split_keywords = []
 
-    def keyword_move_files(self):
+    def keyword_move_files(self) -> None:
         """Move files based on keywords."""
         self.state._keywords = ""
         if self.state.split_keywords:
@@ -355,11 +363,11 @@ class Annotator:
             self.state.split_keywords = []
             self.reset_imgs()
 
-    def get_sep(self):
+    def get_sep(self) -> None:
         """Get separator if provided by user."""
-        self.state.sep = self.state._sep
+        self.state.sep = getattr(self.state, "_sep", self.state.sep)
 
-    def set_ui_values(self):
+    def set_ui_values(self) -> None:
         """Set the UI element values and change any display values needed."""
         self.n_annotated = len(self.state.annotations)
         self.remaining = len(self.state.files) - self.state.counter
@@ -441,7 +449,7 @@ class Annotator:
                     )
                     self.key2.button("Keyword MOVE", on_click=self.keyword_move_files)
         if self.clear_annotations:
-            if self.state.files:
+            if self.state.files and self.state.json_path:
                 save_json({}, self.state.json_path)
             self.reset_imgs()
         if self.add_hide_button:
@@ -467,18 +475,18 @@ class Annotator:
                 }
                 for idx, option in enumerate(self.state.split_categories):
                     self.button_cols[idx].button(
-                        f"{option}",
+                        option,
                         on_click=self.annotate,
                         args=(option, json_dict, self.state.json_path),
                     )
             else:
                 for idx, option in enumerate(self.state.split_categories):
-                    self.button_cols[idx].button(f"{option}")
+                    self.button_cols[idx].button(option)
 
         else:
             self.options_buttons_placeholder.info("Everything is annotated.")
 
-    def run(self):
+    def run(self) -> None:
         """Method that keeps track of the order of methods called."""
         self.get_config_data()
         self.set_state_dict()

@@ -17,7 +17,7 @@ with (
     patch("os.path.isfile", return_value=True),
     patch("omegaconf.OmegaConf.load", return_value=_mock_conf),
 ):
-    import utils  # noqa: E402  (src/ is on sys.path via pyproject.toml pythonpath)
+    import utils
 
 
 # ---------------------------------------------------------------------------
@@ -64,7 +64,7 @@ def test_filter_by_keyword_no_match():
 
 def test_filter_by_keyword_multi_word():
     files = ["a big cat.png", "small cat.png", "a big dog.png"]
-    remaining, matched = utils.filter_by_keyword(files, "big cat")
+    _remaining, matched = utils.filter_by_keyword(files, "big cat")
     assert "a big cat.png" in matched
     assert "small cat.png" not in matched
     assert "a big dog.png" not in matched
@@ -76,13 +76,21 @@ def test_filter_by_keyword_empty_list():
     assert matched == []
 
 
+def test_filter_by_keyword_empty_sep_falls_back_to_space():
+    """Passing an empty sep_ should fall back to a space separator."""
+    files = ["a cat.png", "a dog.png"]
+    remaining, matched = utils.filter_by_keyword(files, "cat", sep_="")
+    assert "a cat.png" in matched
+    assert "a dog.png" in remaining
+
+
 def test_filter_by_keyword_special_chars():
     # When sep is '-', hyphens split words and other special chars are stripped.
     # With default sep=' ', hyphens are removed entirely (no split), so
     # "cat-sitting" -> "catsitting" which does NOT match "sitting".
     # With sep='-', "cat-sitting" -> ["cat", "sitting"] which DOES match.
     files = ["cat-sitting.png", "dog-running.png"]
-    remaining, matched = utils.filter_by_keyword(files, "sitting", sep_="-")
+    _remaining, matched = utils.filter_by_keyword(files, "sitting", sep_="-")
     assert "cat-sitting.png" in matched
     assert "dog-running.png" not in matched
 
@@ -109,6 +117,15 @@ def test_get_filtered_files_no_match(tmp_path):
     (tmp_path / "readme.txt").write_text("")
     result = utils.get_filtered_files(str(tmp_path), [".png", ".jpg"])
     assert result == []
+
+
+def test_get_filtered_files_uses_default_ext_list(tmp_path):
+    """Calling without ext_list should fall back to FILTER_EXT_LIST (.png, .jpg)."""
+    (tmp_path / "image.png").write_text("")
+    (tmp_path / "photo.jpg").write_text("")
+    (tmp_path / "doc.txt").write_text("")
+    result = utils.get_filtered_files(str(tmp_path))
+    assert sorted(result) == ["image.png", "photo.jpg"]
 
 
 # ---------------------------------------------------------------------------
@@ -184,5 +201,12 @@ def test_get_metadata_str_non_png(tmp_path):
     jpg_path = tmp_path / "photo.jpg"
     jpg_path.write_bytes(b"")
     prompts, meta = utils.get_metadata_str(str(jpg_path))
+    assert prompts == ""
+    assert meta == ""
+
+
+def test_get_metadata_str_png_no_sd_params(tmp_image):
+    """A plain PNG without Stable Diffusion parameters returns empty strings."""
+    prompts, meta = utils.get_metadata_str(str(tmp_image))
     assert prompts == ""
     assert meta == ""

@@ -9,9 +9,11 @@
   * [Category Sorting](#annotation-and-file-sorting-using-category-buttons)
   * [Keyword Sorting](#bulk-file-sorting-using-keyword-filters)
 * [Installation](#installation)
+* [Project Structure](#project-structure)
 * [Config](#config)
 * [Using the App](#using-the-app)
   * [App Demo](#app-demo)
+* [Development](#development)
 * [Future Work](#future-work)
 
 # Introduction
@@ -45,42 +47,43 @@ And with one click, images with "cyberpunk" in the image name will be moved to a
 
 # Installation
 
-This app uses `streamlit` and has issues with some versions of Python. 3.9.7 does not work specifically. I am using 3.9.12. I have tested 3.9.13 and that works as well. so I suggest using 3.9.12 or 3.9.13 for now, or using either version if you run into issues with `streamlit`.
+Requires **Python ≥ 3.9** and [**uv**](https://github.com/astral-sh/uv) for dependency management.
 
-__Note: This installation guide is for Windows. Please adjust accordingly if you are using Linux or Mac.__
-
-You can create a virtual environment with `conda` if you do not have an installation of 3.9.12.  Or, if you have an environment with 3.9.12, you can use `venv` by pointing it to that installation. First you will need to clone this repo. You do not need to create a virtual environment if you do not want to, but it is always a good idea! If you do not, just clone the repo and skip to step 5.
-
-1. Create a conda environment with Python 3.9.12, or if you already have one, pat yourself on the back and move on to step 2. Here I am creating a conda environment called "streamlit".
+1. Clone this repo:
 ```bash
-> conda create --name streamlit python=3.9.12
+git clone https://github.com/rasbot/streamlit_image_annotator
+cd streamlit_image_annotator
 ```
 
-2. Clone this repo using:
+2. Install dependencies with `uv` (creates a `.venv` automatically):
 ```bash
-> git clone https://github.com/rasbot/streamlit_image_annotator
+uv sync
 ```
 
-3. If you are not going to use a conda environment, you can use `venv` (if you already have an installation of 3.9.12). Navigate to the repo directory and use:
-```bash
-> "path to python 3.9.12 executable"  -m venv venv
+3. Create your `config.yml` by running `set_config.bat` (Windows) or by copying the template below and editing it manually:
+```yaml
+default_directory: ""
+json_path: ""
+default_categories: "keep, delete, fix, other"
+filter_files: "png, jpg"
+image_height_clamp: 896
+clamp_image: true
 ```
 
-For my installation, I had one in another conda environment so the path to the executable was "C:\users\<my_username>\anaconda3\envs\py3912\python.exe"
+# Project Structure
 
-4. Activate your virtual environment. If using `conda`, just use:
-```bash
-> conda activate streamlit
 ```
-If you named it streamlit (as I did in the above example). Or, for `venv`:
-```bash
-> .\venv\Scripts\activate
-```
-__Make sure you are in your activated environment before installing requirements or launching the app when using it.__
-
-5. Install requirements:
-```bash
-> pip install -r requirements.txt
+streamlit_image_annotator/
+├── src/
+│   ├── annotator.py   # Annotation app (main entry point)
+│   ├── viewer.py      # Viewer app with slideshow support
+│   └── utils.py       # Shared helpers (image loading, JSON, filtering)
+├── tests/             # pytest test suite
+├── config.yml         # Runtime configuration (created by set_config.bat)
+├── launch_app.bat     # Windows launcher for the annotator
+├── launch_viewer.bat  # Windows launcher for the viewer
+├── pyproject.toml     # Project metadata, dependencies, tool config
+└── uv.lock            # Pinned dependency lockfile
 ```
 
 # Config
@@ -116,11 +119,23 @@ This will most likely never be changed, but if you have other image files outsid
 
 # Using the App
 
-Launch the app from the repo directory by opening `launch_app.bat` or in your terminal:
+Launch the annotator from the repo directory:
 ```bash
-> launch_app.bat
+# Windows — double-click or run:
+launch_app.bat
+
+# Any platform:
+uv run streamlit run src/annotator.py
 ```
-Which will launch the app in a browser and point to the `default_directory` folder. The batch file will do a `git pull` to update the repo. Press any key after that to continue to launch the app. You can easily change folders in the UI if you are not in the folder you want to use. Click on the "Expand for more options" if it is collapsed. Change the folder path and hit enter.
+
+To launch the viewer instead:
+```bash
+launch_viewer.bat
+# or:
+uv run streamlit run src/viewer.py
+```
+
+The app opens in your browser and points to `default_directory` from `config.yml`. You can easily change folders in the UI if you are not in the folder you want to use. Click on the "Expand for more options" if it is collapsed. Change the folder path and hit enter.
 <div align="center">
     <img src="images/change_folder.gif"/>
     <p>Change the folder path.</p>
@@ -206,6 +221,24 @@ All of the annotation data is stored within the app when running, but as a backu
     <p>Writing to the JSON file.</p>
 </div>
 Regardless of the image directory you are in, the JSON file will be stored in the location stored in the config file (config.yml).
+
+# Development
+
+Install dev dependencies (includes `pytest` and `ruff`):
+```bash
+uv sync --dev
+```
+
+Run the test suite:
+```bash
+uv run pytest tests/ -v
+```
+
+Lint and format:
+```bash
+uv run ruff check --fix .
+uv run ruff format .
+```
 
 # Future Work
 
