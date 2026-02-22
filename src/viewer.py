@@ -5,17 +5,24 @@ from __future__ import annotations
 import os
 import random
 import time
+from pathlib import Path
+from typing import Any
 
 import streamlit as st
 from omegaconf import OmegaConf
 
 from utils import filter_by_keyword, get_filtered_files, load_image
 
+# viewer.py is a Streamlit script entry point, not a library module;
+# __all__ is intentionally omitted.
+
+_CONFIG_PATH = Path(__file__).parent.parent / "config.yml"
+
 
 def _get_default_dir() -> str:
     """Read default image directory from config.yml, falling back to cwd."""
-    if os.path.isfile("config.yml"):
-        conf = OmegaConf.load("config.yml")
+    if os.path.isfile(_CONFIG_PATH):
+        conf = OmegaConf.load(_CONFIG_PATH)
         default_dir = str(conf.default_directory) if conf.default_directory else ""
         if default_dir and os.path.isdir(default_dir):
             return default_dir
@@ -112,7 +119,7 @@ def get_imgs() -> list[str]:
     if state.is_new_dir:
         state.img_file_names = get_filtered_files(state.img_dir)
         state.is_new_dir = False
-        if state.img_file_names:  # and not state.is_shuffled:
+        if state.img_file_names:
             state.img_file_names.sort()
         state.filtered_words = state.img_file_names
     if state.split_keywords and state.is_new_keywords:
@@ -146,10 +153,14 @@ def set_dir() -> None:
         st.write("No image files in folder.")
 
 
-def show_image() -> None:
+def show_image(img_container: Any, file_name_placeholder: Any) -> None:
     """Display the current image in the viewer container.
 
     Does nothing if ``state.current_file`` is ``None``.
+
+    Args:
+        img_container: Streamlit container used to render the image.
+        file_name_placeholder: Streamlit container used to display the filename.
     """
     if state.current_file is None:
         return
@@ -273,10 +284,10 @@ st.sidebar.number_input(
     on_change=change_height_clamp,
 )
 if state.counter >= 0 and state.current_file and not state.is_slideshow:
-    show_image()
+    show_image(img_container, file_name_placeholder)
 # slide show code
 if state.is_slideshow and state.counter < len(state.files) and state.current_file:
-    show_image()
+    show_image(img_container, file_name_placeholder)
     time.sleep(state.sleep_time)
     # Unlike change_img(), slideshow does not wrap to the beginning unless
     # the "continuous" checkbox is enabled — stopping at the last image is
