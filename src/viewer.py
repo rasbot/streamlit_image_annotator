@@ -249,7 +249,6 @@ state.is_slideshow = scol2.checkbox("slide show", value=False)
 if state.is_slideshow:
     state.continuous = scol3.checkbox("continuous", value=False)
     state.sleep_time = st.sidebar.number_input("view time", value=2)
-#     shuffle_files()
 st.sidebar.markdown("---")
 st.sidebar.text_input(
     "full directory path to image files",
@@ -275,7 +274,6 @@ st.sidebar.number_input(
 )
 if state.counter >= 0 and state.current_file and not state.is_slideshow:
     show_image()
-# TODO: height clamp if removed should stay that way
 # slide show code
 if state.is_slideshow and state.counter < len(state.files) and state.current_file:
     show_image()
