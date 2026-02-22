@@ -5,15 +5,31 @@ from __future__ import annotations
 import json
 import os
 from pathlib import Path
+from typing import Any
 
 from omegaconf import OmegaConf
 from PIL import Image
 
-if not os.path.isfile("config.yml"):
+__all__ = [
+    "FILTER_EXT_LIST",
+    "filter_by_keyword",
+    "get_filtered_files",
+    "get_metadata_str",
+    "load_image",
+    "load_json",
+    "save_json",
+    "update_json",
+]
+
+# C-1: Resolve relative to this file so the check is independent of the
+# process working directory.
+_CONFIG_PATH = Path(__file__).parent.parent / "config.yml"
+if not os.path.isfile(_CONFIG_PATH):
     raise FileNotFoundError(
-        "config.yml not found. Please run `set_config.bat` to create it."
+        f"config.yml not found at {_CONFIG_PATH}. "
+        "Please run `set_config.bat` to create it."
     )
-conf = OmegaConf.load("config.yml")
+conf = OmegaConf.load(_CONFIG_PATH)
 FILTER_EXT_LIST = ["." + filt.strip() for filt in conf.filter_files.split(",")]
 
 
@@ -44,7 +60,7 @@ def concat_arr(arr: list[str]) -> list[str]:
     return result
 
 
-def get_metadata_dict(image_path: str) -> dict[str, str]:
+def get_metadata_dict(image_path: str) -> dict[str, Any]:
     """Get a dictionary of metadata from an image.
     This will only apply to images generated with Stable
     Diffusion using Automatic1111's webui repo.
@@ -53,7 +69,9 @@ def get_metadata_dict(image_path: str) -> dict[str, str]:
         image_path (str): Path to image file.
 
     Returns:
-        dict[str, str]: Dict with metadata info.
+        dict[str, Any]: Dict with metadata info. Values may be ``str``,
+            ``bytes``, ``int``, or other PIL info types when the image has
+            no Stable Diffusion parameters.
     """
     with Image.open(image_path) as img_file:
         metadata = img_file.info
@@ -133,10 +151,7 @@ def filter_by_keyword(
         for char in char_filter:
             no_ext = no_ext.replace(char, "")
         split_file = no_ext.split(sep_)
-        if sep_ in keyword:
-            split_keyword = keyword.split(sep_)
-        else:
-            split_keyword = [keyword]
+        split_keyword = keyword.split(sep_) if sep_ in keyword else [keyword]
         n_key = len(split_keyword)
         first_idxs = [
             idx for idx, val in enumerate(split_file) if val == split_keyword[0]
@@ -149,50 +164,50 @@ def filter_by_keyword(
                 ):
                     filtered.append(file)
                     str_list_.remove(file)
-        elif keyword in split_file:
-            filtered.append(file)
-            str_list_.remove(file)
     return str_list_, filtered
 
 
-def save_json(json_dict: dict, json_path: str) -> None:
+def save_json(json_dict: dict[str, Any], json_path: str | Path) -> None:
     """Save a dictionary to a json file.
 
     Args:
-        json_dict (dict): Dictionary.
-        json_path (str): File path for json file.
+        json_dict (dict[str, Any]): Dictionary to serialise.
+        json_path (str | Path): File path for json file.
     """
     json_object = json.dumps(json_dict, indent=4)
     with open(json_path, "w", encoding="utf-8") as outfile:
         outfile.write(json_object)
 
 
-def load_json(json_path: str) -> dict:
+def load_json(json_path: str | Path) -> dict[str, Any]:
     """Load a json file and return a dictionary.
 
     Args:
-        json_path (str): Full path to the json file.
+        json_path (str | Path): Full path to the json file.
 
     Returns:
-        dict: Dictionary of json data.
+        dict[str, Any]: Dictionary of json data.
+
+    Raises:
+        FileNotFoundError: If the file does not exist at ``json_path``.
     """
-    if not os.path.exists(json_path):
+    if not Path(json_path).exists():
         raise FileNotFoundError(f"JSON file not found: {json_path}")
-    with open(json_path, "r", encoding="utf-8") as infile:
+    with open(json_path, encoding="utf-8") as infile:
         json_dict = json.load(infile)
     return json_dict
 
 
-def update_json(json_dict: dict, json_path: str) -> None:
+def update_json(json_dict: dict[str, Any], json_path: str | Path) -> None:
     """Update a json file by loading it into a dict, updating
     the dict, and saving the dict as a json file.
 
     Args:
-        json_dict (dict): Dictionary to update.
-        json_path (str): Path of the json file.
+        json_dict (dict[str, Any]): Dictionary to merge in.
+        json_path (str | Path): Path of the json file.
     """
-    if os.path.exists(json_path):
-        with open(json_path, "r", encoding="utf-8") as infile:
+    if Path(json_path).exists():
+        with open(json_path, encoding="utf-8") as infile:
             data = json.load(infile)
     else:
         data = {}
@@ -200,22 +215,23 @@ def update_json(json_dict: dict, json_path: str) -> None:
     save_json(data, json_path)
 
 
-def get_filtered_files(
-    file_dir: str, ext_list: list[str] = FILTER_EXT_LIST
-) -> list[str]:
+def get_filtered_files(file_dir: str, ext_list: list[str] | None = None) -> list[str]:
     """Get files in directory and return a list of files that
-    have file extensions provided in `ext_list`.
+    have file extensions provided in ``ext_list``.
 
     Args:
         file_dir (str): File directory with files to filter.
-        ext_list (list[str], optional): List of valid file extensions.
+        ext_list (list[str] | None): List of valid file extensions.
+            Defaults to ``FILTER_EXT_LIST`` from config when ``None``.
 
     Returns:
         list[str]: Filtered list of files with valid extensions.
     """
+    if ext_list is None:
+        ext_list = FILTER_EXT_LIST
     try:
         files = os.listdir(file_dir)
-        return [file for file in files if os.path.splitext(file)[-1] in ext_list]
+        return [file for file in files if Path(file).suffix in ext_list]
     except OSError:
         return []
 
@@ -238,14 +254,13 @@ def load_image(
     Returns:
         Image: PIL Image that is either full resolution or clamped.
     """
-    img = Image.open(image_path)
-    if not is_clamped:
-        return img
-    aspect_ratio = img.width / img.height
-    if img.height > height:
-        width = int(height * aspect_ratio)
-    else:
-        height = img.height
-        width = img.width
-    resized_image = img.resize((width, height))
-    return resized_image
+    with Image.open(image_path) as img:
+        if not is_clamped:
+            return img.copy()
+        aspect_ratio = img.width / img.height
+        if img.height > height:
+            width = int(height * aspect_ratio)
+        else:
+            height = img.height
+            width = img.width
+        return img.resize((width, height))
