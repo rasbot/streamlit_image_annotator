@@ -32,11 +32,14 @@ class Annotator:
     coordinates annotation persistence to JSON.
     """
 
-    def __init__(self, config_path: str = "config.yml"):
+    def __init__(
+        self,
+        config_path: str = str(Path(__file__).parent.parent / "config.yml"),
+    ):
         """Initialize the Annotator class.
 
         Args:
-            config_path (str, optional): Path to config file. Defaults to "config.yml".
+            config_path: Path to config file. Defaults to the repo-root config.yml.
         """
         self.config_path = config_path
         self.image_dir: str | None = None
@@ -113,8 +116,9 @@ class Annotator:
             self.state.json_path = self.json_path
         if "categories" not in self.state:
             self.state.categories = self.categories
+        if "split_categories" not in self.state:
             self.state.split_categories = [
-                opt.strip() for opt in self.categories.split(",")
+                opt.strip() for opt in self.state.categories.split(",")
             ]
         if "clamp_state" not in self.state:
             self.state.clamp_state = self.clamp_image
@@ -217,6 +221,8 @@ class Annotator:
 
         Note: Filtering is performed on image filenames only, not prompt content.
         """
+        if self.img_file_names is None:
+            self.img_file_names = get_filtered_files(self.state.img_dir)
         file_list_ = self.img_file_names.copy()
         self.keyword_dict = {}
         for keyword in self.state.split_keywords:
@@ -496,5 +502,5 @@ class Annotator:
 
 
 if __name__ == "__main__":
-    annotator = Annotator("config.yml")
+    annotator = Annotator()
     annotator.run()
