@@ -17,7 +17,7 @@ with (
     patch("os.path.isfile", return_value=True),
     patch("omegaconf.OmegaConf.load", return_value=_mock_conf),
 ):
-    import utils  # noqa: E402  (src/ is on sys.path via pyproject.toml pythonpath)
+    import utils
 
 
 # ---------------------------------------------------------------------------
@@ -64,7 +64,7 @@ def test_filter_by_keyword_no_match():
 
 def test_filter_by_keyword_multi_word():
     files = ["a big cat.png", "small cat.png", "a big dog.png"]
-    remaining, matched = utils.filter_by_keyword(files, "big cat")
+    _remaining, matched = utils.filter_by_keyword(files, "big cat")
     assert "a big cat.png" in matched
     assert "small cat.png" not in matched
     assert "a big dog.png" not in matched
@@ -82,7 +82,7 @@ def test_filter_by_keyword_special_chars():
     # "cat-sitting" -> "catsitting" which does NOT match "sitting".
     # With sep='-', "cat-sitting" -> ["cat", "sitting"] which DOES match.
     files = ["cat-sitting.png", "dog-running.png"]
-    remaining, matched = utils.filter_by_keyword(files, "sitting", sep_="-")
+    _remaining, matched = utils.filter_by_keyword(files, "sitting", sep_="-")
     assert "cat-sitting.png" in matched
     assert "dog-running.png" not in matched
 
