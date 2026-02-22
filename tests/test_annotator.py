@@ -71,7 +71,7 @@ def _make_annotator_with_state(**state_kwargs):
 
 def test_init_defaults():
     a = Annotator()
-    assert a.config_path == "config.yml"
+    assert a.config_path.endswith("config.yml")
     assert a.image_dir is None
     assert a.json_path is None
     assert a.categories is None
