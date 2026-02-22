@@ -10,8 +10,6 @@ from typing import Any
 import streamlit as st
 from omegaconf import OmegaConf
 
-__all__ = ["Annotator"]
-
 from utils import (
     filter_by_keyword,
     get_filtered_files,
@@ -21,6 +19,8 @@ from utils import (
     save_json,
     update_json,
 )
+
+__all__ = ["Annotator"]
 
 
 class Annotator:
@@ -195,18 +195,16 @@ class Annotator:
         """
         self.state.hide_state = 1 - self.state.hide_state
 
-    def annotate(
-        self, label: str, results_d: dict[str, dict[str, str]], json_path: str
-    ) -> None:
+    def annotate(self, label: str, results_d: dict[str, Any], json_path: str) -> None:
         """Set annotation for the current file, change the image, and update the
         json file.
 
-        results_d will have a 'directory' key with a value containing the directory
-        path of the image folder, and a 'files' key with file_name/annotation pairs.
+        ``results_d`` has a ``"directory"`` key (str) and a ``"files"`` key
+        (dict mapping filename to annotation label).
 
         Args:
             label (str): Annotation label to assign to img file.
-            results_d (dict[str, dict[str, str]]): Dictionary of annotations.
+            results_d (dict[str, Any]): Dictionary of annotations.
             json_path (str): Path to json file.
         """
         self.state.annotations[self.state.current_file] = label
@@ -477,13 +475,13 @@ class Annotator:
                 }
                 for idx, option in enumerate(self.state.split_categories):
                     self.button_cols[idx].button(
-                        f"{option}",
+                        option,
                         on_click=self.annotate,
                         args=(option, json_dict, self.state.json_path),
                     )
             else:
                 for idx, option in enumerate(self.state.split_categories):
-                    self.button_cols[idx].button(f"{option}")
+                    self.button_cols[idx].button(option)
 
         else:
             self.options_buttons_placeholder.info("Everything is annotated.")
