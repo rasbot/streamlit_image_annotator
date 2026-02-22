@@ -53,4 +53,5 @@ def mock_state():
         show_meta=False,
         show_prompt=False,
         move=False,
+        keyword_and_or=False,
     )
