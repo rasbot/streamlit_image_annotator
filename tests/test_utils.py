@@ -76,6 +76,14 @@ def test_filter_by_keyword_empty_list():
     assert matched == []
 
 
+def test_filter_by_keyword_empty_sep_falls_back_to_space():
+    """Passing an empty sep_ should fall back to a space separator."""
+    files = ["a cat.png", "a dog.png"]
+    remaining, matched = utils.filter_by_keyword(files, "cat", sep_="")
+    assert "a cat.png" in matched
+    assert "a dog.png" in remaining
+
+
 def test_filter_by_keyword_special_chars():
     # When sep is '-', hyphens split words and other special chars are stripped.
     # With default sep=' ', hyphens are removed entirely (no split), so
@@ -109,6 +117,15 @@ def test_get_filtered_files_no_match(tmp_path):
     (tmp_path / "readme.txt").write_text("")
     result = utils.get_filtered_files(str(tmp_path), [".png", ".jpg"])
     assert result == []
+
+
+def test_get_filtered_files_uses_default_ext_list(tmp_path):
+    """Calling without ext_list should fall back to FILTER_EXT_LIST (.png, .jpg)."""
+    (tmp_path / "image.png").write_text("")
+    (tmp_path / "photo.jpg").write_text("")
+    (tmp_path / "doc.txt").write_text("")
+    result = utils.get_filtered_files(str(tmp_path))
+    assert sorted(result) == ["image.png", "photo.jpg"]
 
 
 # ---------------------------------------------------------------------------
@@ -184,5 +201,12 @@ def test_get_metadata_str_non_png(tmp_path):
     jpg_path = tmp_path / "photo.jpg"
     jpg_path.write_bytes(b"")
     prompts, meta = utils.get_metadata_str(str(jpg_path))
+    assert prompts == ""
+    assert meta == ""
+
+
+def test_get_metadata_str_png_no_sd_params(tmp_image):
+    """A plain PNG without Stable Diffusion parameters returns empty strings."""
+    prompts, meta = utils.get_metadata_str(str(tmp_image))
     assert prompts == ""
     assert meta == ""

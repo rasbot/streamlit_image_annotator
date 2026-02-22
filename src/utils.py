@@ -124,7 +124,7 @@ def get_metadata_str(image_path: str) -> tuple[str, str]:
 
 
 def filter_by_keyword(
-    str_list: list[str], keyword: str, sep_=" "
+    str_list: list[str], keyword: str, sep_: str = " "
 ) -> tuple[list[str], list[str]]:
     """Filter a list of strings to ones that contain a keyword phrase.
     This can be multiple words.
